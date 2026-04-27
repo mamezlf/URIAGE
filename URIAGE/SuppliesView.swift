@@ -20,6 +20,16 @@ struct SuppliesView: View {
         AppCurrencyFormatter(currencyCode: currencyCode)
     }
 
+    private var totalSupplyCost: Decimal {
+        supplies.reduce(0) { $0 + $1.totalCost }
+    }
+
+    private var currentMonthSupplyCost: Decimal {
+        supplies
+            .filter { Calendar.current.isDate($0.purchaseDate, equalTo: Date(), toGranularity: .month) }
+            .reduce(0) { $0 + $1.totalCost }
+    }
+
     var body: some View {
         List {
             if supplies.isEmpty {
@@ -38,14 +48,25 @@ struct SuppliesView: View {
                 }
                 .listRowBackground(Color.clear)
             } else {
-                ForEach(supplies) { item in
-                    NavigationLink {
-                        SupplyItemFormView(item: item)
-                    } label: {
-                        SupplyItemRow(item: item, currencyFormatter: currencyFormatter)
-                    }
+                Section {
+                    SupplyCostSummaryRow(
+                        totalCost: totalSupplyCost,
+                        currentMonthCost: currentMonthSupplyCost,
+                        itemCount: supplies.count,
+                        currencyFormatter: currencyFormatter
+                    )
                 }
-                .onDelete(perform: delete)
+
+                Section("購入した資材") {
+                    ForEach(supplies) { item in
+                        NavigationLink {
+                            SupplyItemFormView(item: item)
+                        } label: {
+                            SupplyItemRow(item: item, currencyFormatter: currencyFormatter)
+                        }
+                    }
+                    .onDelete(perform: delete)
+                }
             }
         }
         .navigationTitle("資材")
@@ -111,20 +132,60 @@ private struct SupplyItemRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                Text(AppDateFormatter.dateString(from: item.purchaseDate))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 Spacer(minLength: 10)
 
-                Text("残り \(item.remainingQuantity)")
+                Text("合計 \(currencyFormatter.string(from: item.totalCost)) / \(item.quantity)個")
                     .font(.caption)
-                    .foregroundStyle(item.remainingQuantity <= 2 ? AppTheme.Colors.warning : .secondary)
-
-                if item.remainingQuantity <= 2 {
-                    Label("残りわずか", systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption.bold())
-                        .foregroundStyle(AppTheme.Colors.warning)
-                }
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 6)
+    }
+}
+
+private struct SupplyCostSummaryRow: View {
+    let totalCost: Decimal
+    let currentMonthCost: Decimal
+    let itemCount: Int
+    let currencyFormatter: AppCurrencyFormatter
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("資材にかかったお金")
+                    .font(.headline)
+
+                Spacer(minLength: 12)
+
+                Text(currencyFormatter.string(from: totalCost))
+                    .font(.title3.bold())
+                    .foregroundStyle(AppTheme.Colors.cost)
+            }
+
+            HStack(spacing: 12) {
+                summaryPill("今月", currencyFormatter.string(from: currentMonthCost), systemImage: "calendar")
+                summaryPill("登録", "\(itemCount)件", systemImage: "shippingbox")
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
+    private func summaryPill(_ title: String, _ value: String, systemImage: String) -> some View {
+        Label {
+            Text("\(title) \(value)")
+        } icon: {
+            Image(systemName: systemImage)
+        }
+        .font(.caption.bold())
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(AppTheme.Colors.cardBackground)
+        .clipShape(Capsule())
     }
 }
 

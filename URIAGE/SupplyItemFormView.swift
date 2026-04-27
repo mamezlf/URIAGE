@@ -18,7 +18,6 @@ struct SupplyItemFormView: View {
     @State private var type: String
     @State private var totalCost: String
     @State private var quantity: String
-    @State private var remainingQuantity: String
     @State private var purchaseDate: Date
     @State private var notes: String
     @State private var validationMessage: String?
@@ -30,7 +29,6 @@ struct SupplyItemFormView: View {
         _type = State(initialValue: item.map { SupplyItemType.displayName(for: $0.type) } ?? SupplyItemType.packaging)
         _totalCost = State(initialValue: Self.inputText(from: item?.totalCost ?? 0))
         _quantity = State(initialValue: item.map { String($0.quantity) } ?? "")
-        _remainingQuantity = State(initialValue: item.map { String($0.remainingQuantity) } ?? "")
         _purchaseDate = State(initialValue: item?.purchaseDate ?? Date())
         _notes = State(initialValue: item?.notes ?? "")
     }
@@ -54,7 +52,6 @@ struct SupplyItemFormView: View {
             Section("数量とコスト") {
                 amountField("購入金額", text: $totalCost)
                 integerField("数量", text: $quantity)
-                integerField("残り数量", text: $remainingQuantity)
             }
         }
         .navigationTitle(originalItem == nil ? "資材を追加" : "資材を編集")
@@ -106,14 +103,13 @@ struct SupplyItemFormView: View {
         let trimmedNotes = trimmedOptional(notes)
         let totalCostValue = decimal(from: totalCost)
         let quantityValue = int(from: quantity)
-        let remainingQuantityValue = int(from: remainingQuantity)
 
         if let originalItem {
             originalItem.name = trimmedName
             originalItem.type = type
             originalItem.totalCost = totalCostValue
             originalItem.quantity = quantityValue
-            originalItem.remainingQuantity = remainingQuantityValue
+            originalItem.remainingQuantity = quantityValue
             originalItem.purchaseDate = purchaseDate
             originalItem.notes = trimmedNotes
         } else {
@@ -122,7 +118,7 @@ struct SupplyItemFormView: View {
                 type: type,
                 totalCost: totalCostValue,
                 quantity: quantityValue,
-                remainingQuantity: remainingQuantityValue,
+                remainingQuantity: quantityValue,
                 purchaseDate: purchaseDate,
                 notes: trimmedNotes
             )
@@ -146,11 +142,6 @@ struct SupplyItemFormView: View {
 
         if int(from: quantity) <= 0 {
             validationMessage = "数量は1以上を入力してください。"
-            return false
-        }
-
-        if int(from: remainingQuantity) < 0 {
-            validationMessage = "残り数量は0以上を入力してください。"
             return false
         }
 

@@ -15,8 +15,6 @@ struct SoldItemListView: View {
     @State private var searchText = ""
     @State private var monthFilter: MonthFilter = .all
     @State private var customMonth = Date()
-    @State private var categoryFilter = CategoryFilterTitle.all
-    @State private var profitFilter: ProfitFilter = .all
     @State private var sortField: SortField = .soldDate
     @State private var sortOrder: SortOrder = .descending
     @State private var itemsPendingDeletion: [SoldItem] = []
@@ -32,58 +30,24 @@ struct SoldItemListView: View {
 
     private var filteredAndSortedItems: [SoldItem] {
         sortItems(
-            filterByProfit(
-                filterByCategory(
-                    filterByMonth(
-                        filterBySearch(items)
-                    )
-                )
+            filterByMonth(
+                filterBySearch(items)
             )
         )
-    }
-
-    private var categoryOptions: [String] {
-        let categories = Set(items.map(\.categoryName)).sorted()
-        return [CategoryFilterTitle.all] + categories
     }
 
     var body: some View {
         List {
             Section {
-                Picker("月", selection: $monthFilter) {
-                    ForEach(MonthFilter.allCases) { filter in
-                        Text(filter.title).tag(filter)
-                    }
-                }
-
-                if monthFilter == .custom {
-                    DatePicker("対象月", selection: $customMonth, displayedComponents: .date)
-                }
-
-                Picker("カテゴリ", selection: $categoryFilter) {
-                    ForEach(categoryOptions, id: \.self) { category in
-                        Text(Category.displayName(for: category)).tag(category)
-                    }
-                }
-
-                Picker("利益", selection: $profitFilter) {
-                    ForEach(ProfitFilter.allCases) { filter in
-                        Text(filter.title).tag(filter)
-                    }
-                }
-
-                Picker("並び替え", selection: $sortField) {
-                    ForEach(SortField.allCases) { field in
-                        Text(field.title).tag(field)
-                    }
-                }
-
-                Picker("順序", selection: $sortOrder) {
-                    ForEach(SortOrder.allCases) { order in
-                        Text(order.title).tag(order)
-                    }
-                }
+                FilterBar(
+                    resultCount: filteredAndSortedItems.count,
+                    monthFilter: $monthFilter,
+                    customMonth: $customMonth,
+                    sortField: $sortField,
+                    sortOrder: $sortOrder
+                )
             }
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
 
             if filteredAndSortedItems.isEmpty {
                 Section {
@@ -171,25 +135,6 @@ struct SoldItemListView: View {
         return source.filter { calendar.isDate($0.soldAt, equalTo: targetMonth, toGranularity: .month) }
     }
 
-    private func filterByCategory(_ source: [SoldItem]) -> [SoldItem] {
-        guard categoryFilter != CategoryFilterTitle.all else {
-            return source
-        }
-
-        return source.filter { $0.categoryName == categoryFilter }
-    }
-
-    private func filterByProfit(_ source: [SoldItem]) -> [SoldItem] {
-        switch profitFilter {
-        case .all:
-            return source
-        case .profitable:
-            return source.filter { $0.profit >= 0 }
-        case .loss:
-            return source.filter { $0.profit < 0 }
-        }
-    }
-
     private func sortItems(_ source: [SoldItem]) -> [SoldItem] {
         source.sorted { lhs, rhs in
             switch sortField {
@@ -224,8 +169,6 @@ struct SoldItemListView: View {
         searchText = ""
         monthFilter = .all
         customMonth = Date()
-        categoryFilter = CategoryFilterTitle.all
-        profitFilter = .all
         sortField = .soldDate
         sortOrder = .descending
     }
@@ -256,6 +199,19 @@ private enum MonthFilter: String, CaseIterable, Identifiable {
         }
     }
 
+    var shortTitle: String {
+        switch self {
+        case .all:
+            return "すべて"
+        case .current:
+            return "今月"
+        case .previous:
+            return "先月"
+        case .custom:
+            return "指定"
+        }
+    }
+
     func targetMonth(from customMonth: Date, calendar: Calendar) -> Date? {
         switch self {
         case .all:
@@ -266,25 +222,6 @@ private enum MonthFilter: String, CaseIterable, Identifiable {
             return calendar.date(byAdding: .month, value: -1, to: Date())
         case .custom:
             return customMonth
-        }
-    }
-}
-
-private enum ProfitFilter: String, CaseIterable, Identifiable {
-    case all
-    case profitable
-    case loss
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .all:
-            return "すべて"
-        case .profitable:
-            return "利益ありのみ"
-        case .loss:
-            return "赤字のみ"
         }
     }
 }
@@ -325,10 +262,121 @@ private enum SortOrder: String, CaseIterable, Identifiable {
             return "降順"
         }
     }
+
+    var systemImage: String {
+        switch self {
+        case .ascending:
+            return "arrow.up"
+        case .descending:
+            return "arrow.down"
+        }
+    }
+
+    var toggled: SortOrder {
+        switch self {
+        case .ascending:
+            return .descending
+        case .descending:
+            return .ascending
+        }
+    }
 }
 
-private enum CategoryFilterTitle {
-    static let all = "すべてのカテゴリ"
+private struct FilterBar: View {
+    let resultCount: Int
+    @Binding var monthFilter: MonthFilter
+    @Binding var customMonth: Date
+    @Binding var sortField: SortField
+    @Binding var sortOrder: SortOrder
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 10) {
+                Label("\(resultCount)件", systemImage: "line.3.horizontal.decrease.circle")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                Spacer(minLength: 8)
+
+                Text(activeFilterSummary)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+
+            Picker("月", selection: $monthFilter) {
+                ForEach(MonthFilter.allCases) { filter in
+                    Text(filter.shortTitle).tag(filter)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            if monthFilter == .custom {
+                HStack(spacing: 10) {
+                    Label("対象月", systemImage: "calendar")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    Spacer(minLength: 8)
+
+                    DatePicker("対象月", selection: $customMonth, displayedComponents: .date)
+                        .labelsHidden()
+                        .datePickerStyle(.compact)
+                }
+                .padding(10)
+                .background(AppTheme.Colors.pageBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+
+            HStack(spacing: 10) {
+                Label("並び替え", systemImage: "arrow.up.arrow.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 8)
+
+                Menu {
+                    Picker("並び替え", selection: $sortField) {
+                        ForEach(SortField.allCases) { field in
+                            Text(field.title).tag(field)
+                        }
+                    }
+                } label: {
+                    Text(sortField.title)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                }
+
+                Button {
+                    sortOrder = sortOrder.toggled
+                } label: {
+                    Label(sortOrder.title, systemImage: sortOrder.systemImage)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(.bordered)
+                .tint(AppTheme.Colors.secondary)
+                .accessibilityLabel(sortOrder.title)
+            }
+            .padding(10)
+            .background(AppTheme.Colors.pageBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var activeFilterSummary: String {
+        switch monthFilter {
+        case .all:
+            return "すべて表示"
+        case .current, .previous:
+            return monthFilter.title
+        case .custom:
+            return AppDateFormatter.monthString(from: customMonth)
+        }
+    }
 }
 
 private struct SoldItemListRow: View {

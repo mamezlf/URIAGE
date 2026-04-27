@@ -10,6 +10,7 @@ import SwiftData
 
 struct MonthlyReportView: View {
     @Query(sort: \SoldItem.soldAt, order: .reverse) private var items: [SoldItem]
+    @Query(sort: \SupplyItem.purchaseDate, order: .reverse) private var supplies: [SupplyItem]
 
     @State private var selectedMonth = Date()
     @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
@@ -57,12 +58,20 @@ struct MonthlyReportView: View {
         monthlyItems.reduce(0) { $0 + $1.profit }
     }
 
+    private var monthlySupplyCost: Decimal {
+        SupplyCostCalculator.monthlySupplyCost(soldItems: items, supplies: supplies, in: selectedMonth, calendar: calendar)
+    }
+
+    private var monthlySoldCount: Int {
+        monthlyItems.count
+    }
+
     private var averageProfit: Decimal? {
         guard monthlyItems.isEmpty == false else {
             return nil
         }
 
-        return monthlyProfit / Decimal(monthlyItems.count)
+        return monthlyProfit / Decimal(max(monthlySoldCount, 1))
     }
 
     private var averageProfitRate: Decimal? {
@@ -119,9 +128,10 @@ struct MonthlyReportView: View {
                     reportRow("今月の販売額", currencyFormatter.string(from: monthlySales), valueTint: AppTheme.Colors.sales)
                     reportRow("今月の純売上", currencyFormatter.string(from: monthlyNetIncome), valueTint: AppTheme.Colors.sales)
                     reportRow("今月の総コスト", currencyFormatter.string(from: monthlyTotalCost), valueTint: AppTheme.Colors.cost)
+                    reportRow("今月の資材費用", currencyFormatter.string(from: monthlySupplyCost), valueTint: AppTheme.Colors.cost)
                     reportRow("今月の利益", currencyFormatter.string(from: monthlyProfit), valueTint: AppTheme.profitColor(for: monthlyProfit))
                     reportRow("平均利益率", percentFormatter.string(from: averageProfitRate))
-                    reportRow("販売済み件数", "\(monthlyItems.count)")
+                    reportRow("販売済み件数", "\(monthlySoldCount)")
                     reportRow(
                         "平均単品利益",
                         averageProfit.map { currencyFormatter.string(from: $0) } ?? "-",
@@ -227,5 +237,5 @@ private struct ReportItemRow: View {
     NavigationStack {
         MonthlyReportView()
     }
-    .modelContainer(for: SoldItem.self, inMemory: true)
+    .modelContainer(for: [SoldItem.self, SupplyItem.self], inMemory: true)
 }

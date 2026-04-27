@@ -25,7 +25,7 @@ final class SupplyItem {
         type: String = SupplyItemType.packaging,
         totalCost: Decimal,
         quantity: Int,
-        remainingQuantity: Int,
+        remainingQuantity: Int = 0,
         purchaseDate: Date = Date(),
         notes: String? = nil
     ) {

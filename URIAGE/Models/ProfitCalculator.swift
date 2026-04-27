@@ -43,3 +43,26 @@ enum ProfitCalculator {
         return profit / salePrice
     }
 }
+
+enum SupplyCostCalculator {
+    static func monthlySupplyCost(
+        soldItems: [SoldItem],
+        supplies: [SupplyItem],
+        in month: Date,
+        calendar: Calendar = .current
+    ) -> Decimal {
+        guard let interval = calendar.dateInterval(of: .month, for: month) else {
+            return 0
+        }
+
+        let supplyPurchaseCost = supplies
+            .filter { $0.purchaseDate >= interval.start && $0.purchaseDate < interval.end }
+            .reduce(Decimal(0)) { $0 + $1.totalCost }
+
+        let directPackagingCost = soldItems
+            .filter { $0.soldAt >= interval.start && $0.soldAt < interval.end }
+            .reduce(Decimal(0)) { $0 + $1.directPackagingCost }
+
+        return supplyPurchaseCost + directPackagingCost
+    }
+}

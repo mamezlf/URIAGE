@@ -17,3 +17,4 @@ struct URIAGEApp: App {
         .modelContainer(for: [SoldItem.self, SupplyItem.self])
     }
 }
+

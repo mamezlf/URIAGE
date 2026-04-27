@@ -33,14 +33,15 @@ struct SoldItemDetailView: View {
                     Text(AppDateFormatter.dateString(from: item.soldAt))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+
+                    if let sourceURL = item.sourceURL, let url = URL(string: sourceURL) {
+                        Link(destination: url) {
+                            Label("Mercariで開く", systemImage: "arrow.up.forward.app")
+                                .font(.subheadline)
+                        }
+                    }
                 }
                 .padding(.vertical, 4)
-            }
-
-            Section("商品") {
-                detailRow("カテゴリ", item.category.displayName)
-                detailRow("タグ", textOrDash(item.tags))
-                detailRow("メモ", textOrDash(item.memo))
             }
 
             Section("金額") {
@@ -49,6 +50,9 @@ struct SoldItemDetailView: View {
                 detailAmountRow("送料", item.shippingCost, role: .cost)
                 detailAmountRow("仕入れ価格", item.purchaseCost, role: .cost)
                 detailAmountRow("梱包費", item.packagingCost, role: .cost)
+                if item.inventoryPackagingCost > 0 {
+                    detailAmountRow("登録済み資材分", item.inventoryPackagingCost, role: .cost)
+                }
                 detailAmountRow("その他費用", item.otherCosts, role: .cost)
             }
 
@@ -60,10 +64,19 @@ struct SoldItemDetailView: View {
             }
 
             Section {
+                NavigationLink {
+                    SoldItemFormView(copying: item)
+                } label: {
+                    Label("コピーして使う", systemImage: "doc.on.doc")
+                }
+            }
+
+            Section {
                 Button(role: .destructive) {
                     isShowingDeleteConfirmation = true
                 } label: {
                     Label("販売記録を削除", systemImage: "trash")
+                        .foregroundStyle(.red)
                 }
             }
         }
@@ -122,14 +135,6 @@ struct SoldItemDetailView: View {
 
             AmountText(value: value, formatter: currencyFormatter, role: role)
         }
-    }
-
-    private func textOrDash(_ text: String?) -> String {
-        guard let text, text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
-            return "-"
-        }
-
-        return text
     }
 
     private func delete() {

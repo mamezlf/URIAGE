@@ -11,14 +11,15 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \SoldItem.soldAt, order: .reverse) private var items: [SoldItem]
-#if DEBUG
     @Query(sort: \SupplyItem.purchaseDate, order: .reverse) private var supplies: [SupplyItem]
-#endif
+    @State private var homePath = NavigationPath()
 
     var body: some View {
         TabView {
-            NavigationStack {
-                DashboardView(items: items)
+            NavigationStack(path: $homePath) {
+                DashboardView(items: items, supplies: supplies) {
+                    homePath = NavigationPath()
+                }
             }
             .tabItem {
                 Label("ホーム", systemImage: "house.fill")
@@ -70,6 +71,8 @@ struct ContentView: View {
 
 private struct DashboardView: View {
     let items: [SoldItem]
+    let supplies: [SupplyItem]
+    let onRecordSaved: () -> Void
 
     @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
 
@@ -93,6 +96,14 @@ private struct DashboardView: View {
         monthlyItems.reduce(0) { $0 + $1.profit }
     }
 
+    private var monthlySupplyCost: Decimal {
+        SupplyCostCalculator.monthlySupplyCost(soldItems: items, supplies: supplies, in: Date())
+    }
+
+    private var monthlySoldCount: Int {
+        monthlyItems.count
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -109,7 +120,7 @@ private struct DashboardView: View {
                         }
                     }
 
-                    QuickActionsSection()
+                    QuickActionsSection(onRecordSaved: onRecordSaved)
                 } else {
                     LazyVGrid(
                         columns: [
@@ -121,6 +132,7 @@ private struct DashboardView: View {
                         StatCard(
                             title: "今月の販売額",
                             value: currencyFormatter.string(from: monthlySales),
+                            footnote: "\(monthlySoldCount)件販売",
                             systemImage: "yensign.circle.fill",
                             tint: AppTheme.Colors.sales,
                             valueTint: AppTheme.Colors.sales
@@ -128,26 +140,30 @@ private struct DashboardView: View {
                         StatCard(
                             title: "今月の利益",
                             value: currencyFormatter.string(from: monthlyProfit),
+                            footnote: averageProfitText,
                             systemImage: "chart.line.uptrend.xyaxis.circle.fill",
                             tint: AppTheme.profitColor(for: monthlyProfit),
                             valueTint: AppTheme.profitColor(for: monthlyProfit)
                         )
                         StatCard(
-                            title: "販売済み件数",
-                            value: "\(monthlyItems.count)",
+                            title: "今月の資材費用",
+                            value: currencyFormatter.string(from: monthlySupplyCost),
+                            footnote: "購入月+商品別",
                             systemImage: "shippingbox.circle.fill",
-                            tint: AppTheme.Colors.warning
+                            tint: AppTheme.Colors.warning,
+                            valueTint: AppTheme.Colors.cost
                         )
                         StatCard(
-                            title: "平均利益",
-                            value: averageProfitText,
-                            systemImage: "chart.line.uptrend.xyaxis",
+                            title: "販売済み件数",
+                            value: "\(monthlySoldCount)",
+                            footnote: "コピーした記録も含む",
+                            systemImage: "bag.circle.fill",
                             tint: AppTheme.Colors.secondary,
-                            valueTint: AppTheme.profitColor(for: monthlyProfit)
+                            valueTint: AppTheme.Colors.secondary
                         )
                     }
 
-                    QuickActionsSection()
+                    QuickActionsSection(onRecordSaved: onRecordSaved)
 
                     SectionCard(title: "最近販売した商品") {
                         ForEach(recentItems) { item in
@@ -185,13 +201,28 @@ private struct DashboardView: View {
             return "-"
         }
 
-        return currencyFormatter.string(from: monthlyProfit / Decimal(monthlyItems.count))
+        return "平均利益 \(currencyFormatter.string(from: monthlyProfit / Decimal(max(monthlySoldCount, 1))))"
     }
 }
 
 private struct QuickActionsSection: View {
+    let onRecordSaved: () -> Void
+
     var body: some View {
         SectionCard(title: "クイックアクション") {
+            NavigationLink {
+                MercariLinkImportView(onRecordSaved: onRecordSaved)
+            } label: {
+                QuickActionRow(
+                    title: "リンクから記録",
+                    systemImage: "link",
+                    tint: AppTheme.Colors.primary
+                )
+            }
+            .buttonStyle(QuickActionButtonStyle())
+
+            Divider()
+
             NavigationLink {
                 ShippingCalculatorView()
             } label: {
@@ -249,7 +280,7 @@ private struct RecentSoldItemRow: View {
                     .font(.subheadline.bold())
                     .lineLimit(1)
 
-                Text("\(item.category.displayName) · \(AppDateFormatter.dateString(from: item.soldAt))")
+                Text(AppDateFormatter.dateString(from: item.soldAt))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

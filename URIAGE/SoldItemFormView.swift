@@ -31,19 +31,24 @@ struct SoldItemFormView: View {
     @State private var purchaseCost: String
     @State private var packagingCost: String
     @State private var otherCosts: String
-    @State private var tags: String
-    @State private var memo: String
+    @State private var sourceURL: String
     @State private var validationMessage: String?
     @State private var isShowingValidationAlert = false
+    @State private var importMessage: String?
+    @State private var isShowingImportAlert = false
+    @State private var isImportingMercariItem = false
     @State private var isShowingSupplyPicker = false
     @State private var isShowingShippingCalculator = false
     @State private var supplySelectionMessage: String?
     @State private var shippingSelectionMessage: String?
+    @State private var selectedInventoryPackagingCost: Decimal
     @State private var hasAppliedDefaultCosts = false
     @State private var didManuallyEditPlatformFee = false
+    private let onSaveComplete: (() -> Void)?
 
-    init(item: SoldItem? = nil) {
+    init(item: SoldItem? = nil, onSaveComplete: (() -> Void)? = nil) {
         self.originalItem = item
+        self.onSaveComplete = onSaveComplete
         _title = State(initialValue: item?.title ?? "")
         _soldAt = State(initialValue: item?.soldAt ?? Date())
         _salePrice = State(initialValue: Self.inputText(from: item?.salePrice ?? 0))
@@ -52,8 +57,38 @@ struct SoldItemFormView: View {
         _purchaseCost = State(initialValue: Self.inputText(from: item?.purchaseCost ?? 0))
         _packagingCost = State(initialValue: Self.inputText(from: item?.packagingCost ?? 0))
         _otherCosts = State(initialValue: Self.inputText(from: item?.otherCosts ?? 0))
-        _tags = State(initialValue: item?.tags ?? "")
-        _memo = State(initialValue: item?.memo ?? "")
+        _sourceURL = State(initialValue: item?.sourceURL ?? "")
+        _selectedInventoryPackagingCost = State(initialValue: item?.inventoryPackagingCost ?? 0)
+    }
+
+    init(copying item: SoldItem, onSaveComplete: (() -> Void)? = nil) {
+        self.originalItem = nil
+        self.onSaveComplete = onSaveComplete
+        _title = State(initialValue: item.title)
+        _soldAt = State(initialValue: Date())
+        _salePrice = State(initialValue: Self.inputText(from: item.salePrice))
+        _platformFee = State(initialValue: Self.inputText(from: item.platformFee))
+        _shippingCost = State(initialValue: Self.inputText(from: item.shippingCost))
+        _purchaseCost = State(initialValue: Self.inputText(from: item.purchaseCost))
+        _packagingCost = State(initialValue: Self.inputText(from: item.packagingCost))
+        _otherCosts = State(initialValue: Self.inputText(from: item.otherCosts))
+        _sourceURL = State(initialValue: item.sourceURL ?? "")
+        _selectedInventoryPackagingCost = State(initialValue: item.inventoryPackagingCost)
+    }
+
+    init(importedMercariItem: MercariItemImportResult, onSaveComplete: (() -> Void)? = nil) {
+        self.originalItem = nil
+        self.onSaveComplete = onSaveComplete
+        _title = State(initialValue: importedMercariItem.title ?? "")
+        _soldAt = State(initialValue: Date())
+        _salePrice = State(initialValue: Self.inputText(from: importedMercariItem.price ?? 0))
+        _platformFee = State(initialValue: Self.inputText(from: 0))
+        _shippingCost = State(initialValue: Self.inputText(from: 0))
+        _purchaseCost = State(initialValue: Self.inputText(from: 0))
+        _packagingCost = State(initialValue: Self.inputText(from: 0))
+        _otherCosts = State(initialValue: Self.inputText(from: 0))
+        _sourceURL = State(initialValue: importedMercariItem.url.absoluteString)
+        _selectedInventoryPackagingCost = State(initialValue: 0)
     }
 
     var body: some View {
@@ -71,12 +106,35 @@ struct SoldItemFormView: View {
                 .padding(.vertical, 6)
             }
 
-            Section("商品") {
+            Section("タイトル") {
                 TextField("商品名", text: $title)
                 DatePicker("販売日", selection: $soldAt, displayedComponents: .date)
-                TextField("タグ", text: $tags)
-                TextField("メモ", text: $memo, axis: .vertical)
-                    .lineLimit(2...4)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("Mercariリンク", text: $sourceURL)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    HStack {
+                        Button {
+                            Task {
+                                await importMercariItem()
+                            }
+                        } label: {
+                            Label("リンクから読み込む", systemImage: "link")
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isImportingMercariItem || sourceURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        if isImportingMercariItem {
+                            ProgressView()
+                        }
+
+                        Spacer()
+                    }
+                }
+                .padding(.vertical, 2)
             }
 
             Section("金額") {
@@ -126,6 +184,12 @@ struct SoldItemFormView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+
+                    if selectedInventoryPackagingCost > 0 {
+                        Text("登録済み資材分 \(currencyFormatter.string(from: selectedInventoryPackagingCost)) は月次資材費で二重計上しません。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .padding(.vertical, 2)
 
@@ -137,6 +201,11 @@ struct SoldItemFormView: View {
             Button("確認", role: .cancel) {}
         } message: {
             Text(validationMessage ?? "入力内容を確認してください。")
+        }
+        .alert("リンク読み込み", isPresented: $isShowingImportAlert) {
+            Button("確認", role: .cancel) {}
+        } message: {
+            Text(importMessage ?? "")
         }
         .onAppear(perform: applyDefaultsIfNeeded)
         .onChange(of: salePrice) { _, _ in
@@ -223,6 +292,7 @@ struct SoldItemFormView: View {
     private func addSupplyToPackagingCost(_ supply: SupplyItem) {
         let updatedCost = decimal(from: packagingCost) + supply.unitCost
         packagingCost = Self.inputText(from: updatedCost)
+        selectedInventoryPackagingCost += supply.unitCost
         supplySelectionMessage = "\(supply.name)を追加しました"
         isShowingSupplyPicker = false
     }
@@ -239,41 +309,55 @@ struct SoldItemFormView: View {
             return
         }
 
-        let trimmedTags = trimmedOptional(tags)
-        let trimmedMemo = trimmedOptional(memo)
+        let trimmedSourceURL = trimmedOptional(sourceURL)
 
         if let originalItem {
             originalItem.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
             originalItem.soldAt = soldAt
+            originalItem.quantity = 1
             originalItem.salePrice = decimal(from: salePrice)
             originalItem.purchaseCost = decimal(from: purchaseCost)
             originalItem.shippingCost = decimal(from: shippingCost)
             originalItem.platformFee = decimal(from: platformFee)
             originalItem.packagingCost = decimal(from: packagingCost)
+            originalItem.inventoryPackagingCost = min(selectedInventoryPackagingCost, decimal(from: packagingCost))
             originalItem.otherCosts = decimal(from: otherCosts)
-            originalItem.tags = trimmedTags
-            originalItem.memo = trimmedMemo
+            originalItem.sourceURL = trimmedSourceURL
         } else {
             let item = SoldItem(
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 salePrice: decimal(from: salePrice),
+                quantity: 1,
                 purchaseCost: decimal(from: purchaseCost),
                 shippingCost: decimal(from: shippingCost),
                 platformFee: decimal(from: platformFee),
                 packagingCost: decimal(from: packagingCost),
+                inventoryPackagingCost: min(selectedInventoryPackagingCost, decimal(from: packagingCost)),
                 otherCosts: decimal(from: otherCosts),
                 soldAt: soldAt,
-                tags: trimmedTags,
-                memo: trimmedMemo
+                sourceURL: trimmedSourceURL
             )
 
             modelContext.insert(item)
         }
 
-        dismiss()
+        if let onSaveComplete {
+            onSaveComplete()
+        } else {
+            dismiss()
+        }
     }
 
     private func validate() -> Bool {
+        if sourceURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+            do {
+                _ = try MercariItemImporter.normalize(sourceURL)
+            } catch {
+                validationMessage = error.localizedDescription
+                return false
+            }
+        }
+
         if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             validationMessage = "商品名を入力してください。"
             return false
@@ -300,6 +384,40 @@ struct SoldItemFormView: View {
 
         validationMessage = nil
         return true
+    }
+
+    @MainActor
+    private func importMercariItem() async {
+        isImportingMercariItem = true
+        defer {
+            isImportingMercariItem = false
+        }
+
+        do {
+            let result = try await MercariItemImporter.fetch(from: sourceURL)
+            sourceURL = result.url.absoluteString
+
+            if let importedTitle = result.title, title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                title = importedTitle
+            }
+
+            if let importedPrice = result.price, decimal(from: salePrice) == 0 {
+                salePrice = Self.inputText(from: importedPrice)
+                updatePlatformFeeFromSalePriceIfNeeded()
+            }
+
+            if result.title == nil || result.price == nil {
+                importMessage = "リンクを保存しました。取得できなかった項目は手入力してください。"
+                isShowingImportAlert = true
+            }
+        } catch {
+            if let normalized = try? MercariItemImporter.normalize(sourceURL) {
+                sourceURL = normalized.url.absoluteString
+            }
+
+            importMessage = error.localizedDescription
+            isShowingImportAlert = true
+        }
     }
 
     private func trimmedOptional(_ text: String) -> String? {
@@ -349,7 +467,7 @@ private struct SupplyPickerView: View {
                                     .font(.headline)
                                     .foregroundStyle(.primary)
 
-                                Text("\(supply.displayType) · 残り \(supply.remainingQuantity)")
+                                Text("\(supply.displayType) · \(supply.quantity)個")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }

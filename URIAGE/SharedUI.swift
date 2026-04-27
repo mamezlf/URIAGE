@@ -10,23 +10,32 @@ import SwiftUI
 struct StatCard: View {
     let title: String
     let value: String
+    var footnote: String? = nil
     let systemImage: String
     var tint: Color = AppTheme.Colors.primary
     var valueTint: Color = .primary
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(tint.opacity(0.14))
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(tint.opacity(0.14))
 
-                Image(systemName: systemImage)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(tint)
+                    Image(systemName: systemImage)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(tint)
+                }
+                .frame(width: AppTheme.Metrics.iconBoxSize, height: AppTheme.Metrics.iconBoxSize)
+
+                Spacer(minLength: 10)
+
+                Circle()
+                    .fill(tint.opacity(0.18))
+                    .frame(width: 10, height: 10)
             }
-            .frame(width: AppTheme.Metrics.iconBoxSize, height: AppTheme.Metrics.iconBoxSize)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(title)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -37,10 +46,25 @@ struct StatCard: View {
                     .foregroundStyle(valueTint)
                     .minimumScaleFactor(0.8)
                     .lineLimit(1)
+
+                if let footnote {
+                    Text(footnote)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
-        .appCard(background: AppTheme.Colors.cardBackground)
+        .frame(maxWidth: .infinity, minHeight: 128, alignment: .leading)
+        .appCard(background: AppTheme.Colors.elevatedCardBackground)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(tint.opacity(0.55))
+                .frame(height: 3)
+                .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
+                .padding(.horizontal, AppTheme.Metrics.cardPadding)
+        }
     }
 }
 
