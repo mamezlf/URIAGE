@@ -45,13 +45,6 @@ struct ContentView: View {
             .tabItem {
                 Label("資材", systemImage: "shippingbox")
             }
-
-            NavigationStack {
-                SettingsView()
-            }
-            .tabItem {
-                Label("設定", systemImage: "gearshape.fill")
-            }
         }
 #if DEBUG
         .onAppear(perform: seedSamplesIfNeeded)
