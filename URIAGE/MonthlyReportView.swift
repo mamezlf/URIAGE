@@ -55,7 +55,12 @@ struct MonthlyReportView: View {
     }
 
     private var monthlyProfit: Decimal {
-        monthlyItems.reduce(0) { $0 + $1.profit }
+        SupplyCostCalculator.monthlyProfitAfterRegisteredSupplyCost(
+            soldItems: items,
+            supplies: supplies,
+            in: selectedMonth,
+            calendar: calendar
+        )
     }
 
     private var monthlySupplyCost: Decimal {
@@ -125,13 +130,13 @@ struct MonthlyReportView: View {
                 .listRowBackground(Color.clear)
             } else {
                 Section("サマリー") {
-                    reportRow("今月の販売額", currencyFormatter.string(from: monthlySales), valueTint: AppTheme.Colors.sales)
-                    reportRow("今月の純売上", currencyFormatter.string(from: monthlyNetIncome), valueTint: AppTheme.Colors.sales)
-                    reportRow("今月の総コスト", currencyFormatter.string(from: monthlyTotalCost), valueTint: AppTheme.Colors.cost)
-                    reportRow("今月の資材費用", currencyFormatter.string(from: monthlySupplyCost), valueTint: AppTheme.Colors.cost)
-                    reportRow("今月の利益", currencyFormatter.string(from: monthlyProfit), valueTint: AppTheme.profitColor(for: monthlyProfit))
+                    reportRow("販売額", currencyFormatter.string(from: monthlySales), valueTint: AppTheme.Colors.sales)
+                    reportRow("純売上", currencyFormatter.string(from: monthlyNetIncome), valueTint: AppTheme.Colors.sales)
+                    reportRow("総コスト", currencyFormatter.string(from: monthlyTotalCost), valueTint: AppTheme.Colors.cost)
+                    reportRow("資材費用", currencyFormatter.string(from: monthlySupplyCost), valueTint: AppTheme.Colors.cost)
+                    reportRow("利益", currencyFormatter.string(from: monthlyProfit), valueTint: AppTheme.profitColor(for: monthlyProfit))
                     reportRow("平均利益率", percentFormatter.string(from: averageProfitRate))
-                    reportRow("販売済み件数", "\(monthlySoldCount)")
+                    reportRow("販売件数", "\(monthlySoldCount)")
                     reportRow(
                         "平均単品利益",
                         averageProfit.map { currencyFormatter.string(from: $0) } ?? "-",

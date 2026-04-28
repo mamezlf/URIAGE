@@ -21,13 +21,11 @@ struct SuppliesView: View {
     }
 
     private var totalSupplyCost: Decimal {
-        supplies.reduce(0) { $0 + $1.totalCost }
+        SupplyCostCalculator.registeredSupplyCost(supplies)
     }
 
     private var currentMonthSupplyCost: Decimal {
-        supplies
-            .filter { Calendar.current.isDate($0.purchaseDate, equalTo: Date(), toGranularity: .month) }
-            .reduce(0) { $0 + $1.totalCost }
+        SupplyCostCalculator.monthlyRegisteredSupplyCost(supplies: supplies, in: Date())
     }
 
     var body: some View {
@@ -69,7 +67,7 @@ struct SuppliesView: View {
                 }
             }
         }
-        .navigationTitle("資材")
+        .navigationTitle("資材（梱包材など）")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink {

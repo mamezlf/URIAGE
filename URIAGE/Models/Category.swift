@@ -46,11 +46,4 @@ struct Category: Identifiable, Codable, Hashable {
 
 extension Category {
     static let uncategorized = Category(name: "未分類")
-
-    static let samples: [Category] = [
-        Category(name: "ファッション"),
-        Category(name: "家電・ガジェット"),
-        Category(name: "本"),
-        Category(name: "ホーム")
-    ]
 }

@@ -16,35 +16,31 @@ struct StatCard: View {
     var valueTint: Color = .primary
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top) {
+        HStack(alignment: .center, spacing: 16) {
+            HStack(alignment: .center, spacing: 8) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .fill(tint.opacity(0.14))
 
                     Image(systemName: systemImage)
-                        .font(.title3.weight(.semibold))
+                        .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(tint)
                 }
-                .frame(width: AppTheme.Metrics.iconBoxSize, height: AppTheme.Metrics.iconBoxSize)
+                .frame(width: 40, height: 40)
 
-                Spacer(minLength: 10)
-
-                Circle()
-                    .fill(tint.opacity(0.18))
-                    .frame(width: 10, height: 10)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.caption)
+                    .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
-
+                    .minimumScaleFactor(0.82)
+                
                 Text(value)
-                    .font(.title3.bold())
+                    .font(.headline.bold())
                     .foregroundStyle(valueTint)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.72)
                     .lineLimit(1)
 
                 if let footnote {
@@ -52,18 +48,18 @@ struct StatCard: View {
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .minimumScaleFactor(0.75)
                 }
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 128, alignment: .leading)
-        .appCard(background: AppTheme.Colors.elevatedCardBackground)
+        .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+        .appCard(background: AppTheme.Colors.elevatedCardBackground, padding: 12)
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(tint.opacity(0.55))
-                .frame(height: 3)
-                .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
-                .padding(.horizontal, AppTheme.Metrics.cardPadding)
+                .frame(height: 2)
+                .clipShape(RoundedRectangle(cornerRadius: 1, style: .continuous))
+                .padding(.horizontal, 12)
         }
     }
 }

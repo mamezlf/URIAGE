@@ -8,22 +8,39 @@
 import SwiftUI
 import SwiftData
 
+private enum AppTab: Hashable {
+    case home
+    case records
+    case reports
+    case supplies
+}
+
+private struct MoveToHomeAfterRecordSaveKey: EnvironmentKey {
+    static let defaultValue: (() -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    var moveToHomeAfterRecordSave: (() -> Void)? {
+        get { self[MoveToHomeAfterRecordSaveKey.self] }
+        set { self[MoveToHomeAfterRecordSaveKey.self] = newValue }
+    }
+}
+
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
     @Query(sort: \SoldItem.soldAt, order: .reverse) private var items: [SoldItem]
     @Query(sort: \SupplyItem.purchaseDate, order: .reverse) private var supplies: [SupplyItem]
     @State private var homePath = NavigationPath()
+    @State private var selectedTab: AppTab = .home
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             NavigationStack(path: $homePath) {
-                DashboardView(items: items, supplies: supplies) {
-                    homePath = NavigationPath()
-                }
+                DashboardView(items: items, supplies: supplies)
             }
             .tabItem {
                 Label("ホーム", systemImage: "house.fill")
             }
+            .tag(AppTab.home)
 
             NavigationStack {
                 SoldItemListView()
@@ -31,6 +48,7 @@ struct ContentView: View {
             .tabItem {
                 Label("記録", systemImage: "list.bullet.rectangle")
             }
+            .tag(AppTab.records)
 
             NavigationStack {
                 MonthlyReportView()
@@ -38,6 +56,7 @@ struct ContentView: View {
             .tabItem {
                 Label("レポート", systemImage: "chart.bar.xaxis")
             }
+            .tag(AppTab.reports)
 
             NavigationStack {
                 SuppliesView()
@@ -45,27 +64,20 @@ struct ContentView: View {
             .tabItem {
                 Label("資材", systemImage: "shippingbox")
             }
+            .tag(AppTab.supplies)
         }
-#if DEBUG
-        .onAppear(perform: seedSamplesIfNeeded)
-#endif
+        .environment(\.moveToHomeAfterRecordSave, moveToHome)
     }
 
-#if DEBUG
-    private func seedSamplesIfNeeded() {
-        guard items.isEmpty, supplies.isEmpty else {
-            return
-        }
-
-        SoldItem.samples.forEach { modelContext.insert($0) }
+    private func moveToHome() {
+        selectedTab = .home
+        homePath = NavigationPath()
     }
-#endif
 }
 
 private struct DashboardView: View {
     let items: [SoldItem]
     let supplies: [SupplyItem]
-    let onRecordSaved: () -> Void
 
     @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
 
@@ -86,11 +98,15 @@ private struct DashboardView: View {
     }
 
     private var monthlyProfit: Decimal {
-        monthlyItems.reduce(0) { $0 + $1.profit }
+        SupplyCostCalculator.monthlyProfitAfterRegisteredSupplyCost(
+            soldItems: items,
+            supplies: supplies,
+            in: Date()
+        )
     }
 
     private var monthlySupplyCost: Decimal {
-        SupplyCostCalculator.monthlySupplyCost(soldItems: items, supplies: supplies, in: Date())
+        SupplyCostCalculator.monthlyRegisteredSupplyCost(supplies: supplies, in: Date())
     }
 
     private var monthlySoldCount: Int {
@@ -113,19 +129,18 @@ private struct DashboardView: View {
                         }
                     }
 
-                    QuickActionsSection(onRecordSaved: onRecordSaved)
+                    QuickActionsSection()
                 } else {
                     LazyVGrid(
                         columns: [
-                            GridItem(.flexible(), spacing: 12),
-                            GridItem(.flexible(), spacing: 12)
+                            GridItem(.flexible(), spacing: 8),
+                            GridItem(.flexible(), spacing: 8)
                         ],
-                        spacing: 12
+                        spacing: 8
                     ) {
                         StatCard(
                             title: "今月の販売額",
                             value: currencyFormatter.string(from: monthlySales),
-                            footnote: "\(monthlySoldCount)件販売",
                             systemImage: "yensign.circle.fill",
                             tint: AppTheme.Colors.sales,
                             valueTint: AppTheme.Colors.sales
@@ -133,7 +148,6 @@ private struct DashboardView: View {
                         StatCard(
                             title: "今月の利益",
                             value: currencyFormatter.string(from: monthlyProfit),
-                            footnote: averageProfitText,
                             systemImage: "chart.line.uptrend.xyaxis.circle.fill",
                             tint: AppTheme.profitColor(for: monthlyProfit),
                             valueTint: AppTheme.profitColor(for: monthlyProfit)
@@ -141,22 +155,20 @@ private struct DashboardView: View {
                         StatCard(
                             title: "今月の資材費用",
                             value: currencyFormatter.string(from: monthlySupplyCost),
-                            footnote: "購入月+商品別",
                             systemImage: "shippingbox.circle.fill",
                             tint: AppTheme.Colors.warning,
                             valueTint: AppTheme.Colors.cost
                         )
                         StatCard(
-                            title: "販売済み件数",
+                            title: "今月販売件数",
                             value: "\(monthlySoldCount)",
-                            footnote: "コピーした記録も含む",
                             systemImage: "bag.circle.fill",
                             tint: AppTheme.Colors.secondary,
                             valueTint: AppTheme.Colors.secondary
                         )
                     }
 
-                    QuickActionsSection(onRecordSaved: onRecordSaved)
+                    QuickActionsSection()
 
                     SectionCard(title: "最近販売した商品") {
                         ForEach(recentItems) { item in
@@ -199,12 +211,10 @@ private struct DashboardView: View {
 }
 
 private struct QuickActionsSection: View {
-    let onRecordSaved: () -> Void
-
     var body: some View {
         SectionCard(title: "クイックアクション") {
             NavigationLink {
-                MercariLinkImportView(onRecordSaved: onRecordSaved)
+                MercariLinkImportView()
             } label: {
                 QuickActionRow(
                     title: "リンクから記録",

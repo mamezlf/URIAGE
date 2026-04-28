@@ -14,7 +14,6 @@ struct SoldItemDetailView: View {
 
     let item: SoldItem
 
-    @State private var isShowingDeleteConfirmation = false
     @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
 
     private var currencyFormatter: AppCurrencyFormatter {
@@ -49,11 +48,6 @@ struct SoldItemDetailView: View {
                 detailAmountRow("メルカリ手数料", item.platformFee, role: .cost)
                 detailAmountRow("送料", item.shippingCost, role: .cost)
                 detailAmountRow("仕入れ価格", item.purchaseCost, role: .cost)
-                detailAmountRow("梱包費", item.packagingCost, role: .cost)
-                if item.inventoryPackagingCost > 0 {
-                    detailAmountRow("登録済み資材分", item.inventoryPackagingCost, role: .cost)
-                }
-                detailAmountRow("その他費用", item.otherCosts, role: .cost)
             }
 
             Section("サマリー") {
@@ -73,7 +67,7 @@ struct SoldItemDetailView: View {
 
             Section {
                 Button(role: .destructive) {
-                    isShowingDeleteConfirmation = true
+                    delete()
                 } label: {
                     Label("販売記録を削除", systemImage: "trash")
                         .foregroundStyle(.red)
@@ -89,16 +83,6 @@ struct SoldItemDetailView: View {
                     Label("編集", systemImage: "pencil")
                 }
             }
-        }
-        .confirmationDialog(
-            "この販売記録を削除しますか？",
-            isPresented: $isShowingDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("削除", role: .destructive, action: delete)
-            Button("キャンセル", role: .cancel) {}
-        } message: {
-            Text("この操作は取り消せません。")
         }
     }
 

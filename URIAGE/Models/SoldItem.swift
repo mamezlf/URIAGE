@@ -107,7 +107,7 @@ final class SoldItem {
 extension SoldItem {
     static let sample = SoldItem(
         title: "メルカリ サンプル商品",
-        category: Category.samples[0],
+        category: Category(name: "ファッション"),
         salePrice: 3_000,
         purchaseCost: 1_200,
         shippingCost: 210,
@@ -117,81 +117,5 @@ extension SoldItem {
         tags: "サンプル, メルカリ",
         memo: "販売記録のサンプル"
     )
-
-    static let samples: [SoldItem] = [
-        SoldItem(
-            title: "Nike パーカー",
-            category: Category.samples[0],
-            salePrice: 4_200,
-            purchaseCost: 1_800,
-            shippingCost: 750,
-            platformFee: 420,
-            packagingCost: 80,
-            soldAt: sampleDate(day: 25),
-            tags: "ファッション, パーカー",
-            memo: "状態良好"
-        ),
-        SoldItem(
-            title: "iPhoneケース セット",
-            category: Category.samples[1],
-            salePrice: 2_100,
-            purchaseCost: 650,
-            shippingCost: 210,
-            platformFee: 210,
-            packagingCost: 60,
-            soldAt: sampleDate(day: 21),
-            tags: "スマホ, アクセサリー"
-        ),
-        SoldItem(
-            title: "デザイン書籍",
-            category: Category.samples[2],
-            salePrice: 1_800,
-            purchaseCost: 500,
-            shippingCost: 450,
-            platformFee: 180,
-            packagingCost: 40,
-            soldAt: sampleDate(day: 18),
-            tags: "本"
-        ),
-        SoldItem(
-            title: "陶器マグ セット",
-            category: Category.samples[3],
-            salePrice: 2_600,
-            purchaseCost: 900,
-            shippingCost: 750,
-            platformFee: 260,
-            packagingCost: 150,
-            otherCosts: 120,
-            soldAt: sampleDate(day: 10),
-            tags: "ホーム, 割れ物"
-        ),
-        SoldItem(
-            title: "ヴィンテージシャツ",
-            category: Category.samples[0],
-            salePrice: 3_500,
-            purchaseCost: 1_500,
-            shippingCost: 450,
-            platformFee: 350,
-            packagingCost: 70,
-            soldAt: sampleDate(monthOffset: -1, day: 28),
-            tags: "ファッション, ヴィンテージ"
-        )
-    ]
-
-    private static func sampleDate(monthOffset: Int = 0, day: Int) -> Date {
-        let calendar = Calendar.current
-        let now = Date()
-        let targetMonth = calendar.date(byAdding: .month, value: monthOffset, to: now) ?? now
-        let components = calendar.dateComponents([.year, .month], from: targetMonth)
-
-        return calendar.date(
-            from: DateComponents(
-                year: components.year,
-                month: components.month,
-                day: day,
-                hour: 12
-            )
-        ) ?? now
-    }
 }
 #endif

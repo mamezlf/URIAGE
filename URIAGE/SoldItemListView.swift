@@ -17,8 +17,6 @@ struct SoldItemListView: View {
     @State private var customMonth = Date()
     @State private var sortField: SortField = .soldDate
     @State private var sortOrder: SortOrder = .descending
-    @State private var itemsPendingDeletion: [SoldItem] = []
-    @State private var isShowingDeleteConfirmation = false
     @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
 
     private var currencyFormatter: AppCurrencyFormatter {
@@ -104,18 +102,6 @@ struct SoldItemListView: View {
                 }
             }
         }
-        .confirmationDialog(
-            deleteConfirmationTitle,
-            isPresented: $isShowingDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("削除", role: .destructive, action: confirmDelete)
-            Button("キャンセル", role: .cancel) {
-                itemsPendingDeletion = []
-            }
-        } message: {
-            Text("この操作は取り消せません。")
-        }
     }
 
     private func filterBySearch(_ source: [SoldItem]) -> [SoldItem] {
@@ -156,13 +142,9 @@ struct SoldItemListView: View {
 
     private func delete(at offsets: IndexSet) {
         let currentItems = filteredAndSortedItems
-        itemsPendingDeletion = offsets.map { currentItems[$0] }
-        isShowingDeleteConfirmation = true
-    }
-
-    private func confirmDelete() {
-        itemsPendingDeletion.forEach { modelContext.delete($0) }
-        itemsPendingDeletion = []
+        offsets
+            .map { currentItems[$0] }
+            .forEach { modelContext.delete($0) }
     }
 
     private func resetFilters() {
@@ -173,9 +155,6 @@ struct SoldItemListView: View {
         sortOrder = .descending
     }
 
-    private var deleteConfirmationTitle: String {
-        itemsPendingDeletion.count > 1 ? "選択した販売記録を削除しますか？" : "この販売記録を削除しますか？"
-    }
 }
 
 private enum MonthFilter: String, CaseIterable, Identifiable {
