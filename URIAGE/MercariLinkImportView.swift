@@ -23,6 +23,8 @@ struct MercariLinkImportView: View {
         linkText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private let mercariLinkGuideURL = URL(string: "https://jp-news.mercari.com/info/37414")!
+
     var body: some View {
         Form {
             Section {
@@ -37,7 +39,7 @@ struct MercariLinkImportView: View {
                     }
                     .frame(width: 64, height: 64)
 
-                    Text("Mercari商品共有リンクから記録")
+                    Text("メルカリ商品リンクから記録")
                         .font(.title2.bold())
 
                     ZStack(alignment: .topLeading) {
@@ -112,6 +114,15 @@ struct MercariLinkImportView: View {
                     }
                 }
                 .disabled(isImporting || trimmedLink.isEmpty)
+            } footer: {
+                HStack {
+                    Spacer()
+
+                    Link(destination: mercariLinkGuideURL) {
+                        Label("共有リンクの出し方", systemImage: "questionmark.circle")
+                            .font(.caption)
+                    }
+                }
             }
 
             Section {

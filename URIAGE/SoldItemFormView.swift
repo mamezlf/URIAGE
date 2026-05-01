@@ -98,12 +98,13 @@ struct SoldItemFormView: View {
                 DatePicker("販売日", selection: $soldAt, displayedComponents: .date)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    TextField("Mercariリンク", text: $sourceURL)
+                    TextField("メルカリ商品リンク", text: $sourceURL)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
 
                     HStack {
+                        Spacer()
                         Button {
                             Task {
                                 await importMercariItem()
@@ -117,8 +118,6 @@ struct SoldItemFormView: View {
                         if isImportingMercariItem {
                             ProgressView()
                         }
-
-                        Spacer()
                     }
                 }
                 .padding(.vertical, 2)
@@ -132,14 +131,13 @@ struct SoldItemFormView: View {
                     amountField("送料", text: $shippingCost)
 
                     HStack {
+                        Spacer()
                         Button {
                             isShowingShippingCalculator = true
                         } label: {
                             Label("送料を計算", systemImage: "shippingbox")
                         }
                         .buttonStyle(.bordered)
-
-                        Spacer()
                     }
 
                     if let shippingSelectionMessage {

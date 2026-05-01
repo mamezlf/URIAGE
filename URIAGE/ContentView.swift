@@ -185,6 +185,8 @@ private struct DashboardView: View {
                         }
                     }
                 }
+
+                LegalLinksFooter()
             }
             .padding()
         }
@@ -207,6 +209,32 @@ private struct DashboardView: View {
         }
 
         return "平均利益 \(currencyFormatter.string(from: monthlyProfit / Decimal(max(monthlySoldCount, 1))))"
+    }
+}
+
+private struct LegalLinksFooter: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            NavigationLink {
+                LegalDocumentsView(document: .disclaimer)
+            } label: {
+                Text("免責事項")
+            }
+
+            Text("/")
+                .foregroundStyle(.tertiary)
+
+            NavigationLink {
+                LegalDocumentsView(document: .terms)
+            } label: {
+                Text("利用規約")
+            }
+        }
+        .font(.footnote.weight(.medium))
+        .foregroundStyle(AppTheme.Colors.primary)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 4)
+        .padding(.bottom, 8)
     }
 }
 
