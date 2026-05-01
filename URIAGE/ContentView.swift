@@ -15,6 +15,12 @@ private enum AppTab: Hashable {
     case supplies
 }
 
+// ★ 追加: ホームNavigationStackで使うルート定義
+private enum HomeRoute: Hashable {
+    case mercariLinkImport
+    case shippingCalculator
+}
+
 private struct MoveToHomeAfterRecordSaveKey: EnvironmentKey {
     static let defaultValue: (() -> Void)? = nil
 }
@@ -36,6 +42,15 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             NavigationStack(path: $homePath) {
                 DashboardView(items: items, supplies: supplies)
+                    // ★ 追加: HomeRouteをhomePathで管理するdestination登録
+                    .navigationDestination(for: HomeRoute.self) { route in
+                        switch route {
+                        case .mercariLinkImport:
+                            MercariLinkImportView()
+                        case .shippingCalculator:
+                            ShippingCalculatorView()
+                        }
+                    }
             }
             .tabItem {
                 Label("ホーム", systemImage: "house.fill")
@@ -241,9 +256,8 @@ private struct LegalLinksFooter: View {
 private struct QuickActionsSection: View {
     var body: some View {
         SectionCard(title: "クイックアクション") {
-            NavigationLink {
-                MercariLinkImportView()
-            } label: {
+            // ★ 変更: destination-based → value-based NavigationLink
+            NavigationLink(value: HomeRoute.mercariLinkImport) {
                 QuickActionRow(
                     title: "リンクから記録",
                     systemImage: "link",
@@ -254,9 +268,8 @@ private struct QuickActionsSection: View {
 
             Divider()
 
-            NavigationLink {
-                ShippingCalculatorView()
-            } label: {
+            // ★ 変更: destination-based → value-based NavigationLink
+            NavigationLink(value: HomeRoute.shippingCalculator) {
                 QuickActionRow(
                     title: "送料計算",
                     systemImage: "shippingbox",
