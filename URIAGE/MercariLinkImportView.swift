@@ -136,6 +136,7 @@ struct MercariLinkImportView: View {
                 }
             }
         }
+        .hideKeyboardOnTap()
         .navigationTitle("リンク入力")
         .navigationDestination(item: $importedItem) { item in
             SoldItemFormView(importedMercariItem: item, onSaveComplete: onRecordSaved)

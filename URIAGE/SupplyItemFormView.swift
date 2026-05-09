@@ -54,6 +54,7 @@ struct SupplyItemFormView: View {
                 integerField("数量", text: $quantity)
             }
         }
+        .hideKeyboardOnTap()
         .navigationTitle(originalItem == nil ? "資材を追加" : "資材を編集")
         .alert("保存できません", isPresented: $isShowingValidationAlert) {
             Button("確認", role: .cancel) {}

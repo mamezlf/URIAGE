@@ -53,6 +53,7 @@ struct ShippingCalculatorView: View {
             .padding()
         }
         .background(AppTheme.Colors.pageBackground)
+        .hideKeyboardOnTap()
         .navigationTitle("送料計算")
     }
 
