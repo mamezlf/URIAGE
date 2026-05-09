@@ -116,7 +116,7 @@ struct ShippingCalculatorView: View {
     }
 
     private var manualCalculatorSection: some View {
-        SectionCard(title: "手動送料計算") {
+        SectionCard(title: "梱包後のサイズ入力") {
             VStack(spacing: 0) {
                 HStack(spacing: 10) {
                     DimensionField(title: "長さ", unit: "cm", text: $length)
@@ -194,7 +194,7 @@ struct ShippingCalculatorView: View {
 
     private var recommendationTitle: String {
         guard let recommendedOption else {
-            return hasInput ? "候補なし" : "サイズを入力"
+            return hasInput ? "候補なし" : "サイズを入力してください"
         }
 
         return recommendedOption.method.rawValue
