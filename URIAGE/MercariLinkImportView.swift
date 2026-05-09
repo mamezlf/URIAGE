@@ -114,16 +114,19 @@ struct MercariLinkImportView: View {
                     }
                 }
                 .disabled(isImporting || trimmedLink.isEmpty)
-            } footer: {
-                HStack {
-                    Spacer()
+            }
 
-                    Link(destination: mercariLinkGuideURL) {
-                        Label("共有リンクの出し方", systemImage: "questionmark.circle")
-                            .font(.caption)
-                    }
+            HStack {
+                Spacer()
+
+                Link(destination: mercariLinkGuideURL) {
+                    Label("共有リンクの出し方", systemImage: "questionmark.circle")
+                        .font(.caption)
                 }
             }
+            .listRowInsets(EdgeInsets(top: -4, leading: 16, bottom: 8, trailing: 16))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
 
             Section {
                 NavigationLink {

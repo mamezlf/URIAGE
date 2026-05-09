@@ -139,19 +139,19 @@ struct ShippingCalculatorView: View {
                         .foregroundStyle(.secondary)
 
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                        PresetButton(title: "A4・薄手", subtitle: "30 x 21 x 2 / 500g") {
-                            applyPreset(length: "30", width: "21", height: "2", weight: "500")
+                        PresetButton(title: "A4・薄手", subtitle: "30 x 21 x 2 / 150g") {
+                            applyPreset(length: "30", width: "21", height: "2", weight: "150")
                         }
 
-                        PresetButton(title: "小型箱", subtitle: "24 x 17 x 7 / 900g") {
-                            applyPreset(length: "24", width: "17", height: "7", weight: "900")
+                        PresetButton(title: "A5・薄手", subtitle: "21 x 15 x 2 / 80g") {
+                            applyPreset(length: "21", width: "15", height: "2", weight: "800")
                         }
 
-                        PresetButton(title: "60サイズ", subtitle: "30 x 20 x 10 / 1500g") {
+                        PresetButton(title: "60サイズ", subtitle: "30 x 20 x 10 / 150g") {
                             applyPreset(length: "30", width: "20", height: "10", weight: "1500")
                         }
 
-                        PresetButton(title: "80サイズ", subtitle: "40 x 25 x 15 / 3000g") {
+                        PresetButton(title: "80サイズ", subtitle: "40 x 25 x 15 / 300g") {
                             applyPreset(length: "40", width: "25", height: "15", weight: "3000")
                         }
                     }
@@ -162,7 +162,7 @@ struct ShippingCalculatorView: View {
     }
 
     private var resultSection: some View {
-        SectionCard(title: "自動で絞り込まれた発送方式") {
+        SectionCard(title: "その他の発送方式") {
             VStack(spacing: 0) {
                 if hasInput == false {
                     EmptyResultRow(systemImage: "ruler", message: "サイズと重量を入力すると、条件に合う発送方式を自動で表示します。")
@@ -202,7 +202,7 @@ struct ShippingCalculatorView: View {
 
     private var recommendationMessage: String {
         if hasInput == false {
-            return "下の手動送料計算に梱包後のサイズを入れてください。"
+            return "下に梱包後のサイズを入れてください。"
         }
 
         if hasCompleteInput == false {
