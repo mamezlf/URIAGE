@@ -47,10 +47,10 @@ struct SoldItemFormView: View {
         self.onSaveComplete = onSaveComplete
         _title = State(initialValue: item?.title ?? "")
         _soldAt = State(initialValue: item?.soldAt ?? Date())
-        _salePrice = State(initialValue: Self.inputText(from: item?.salePrice ?? 0))
-        _platformFee = State(initialValue: Self.inputText(from: item?.platformFee ?? 0))
-        _shippingCost = State(initialValue: Self.inputText(from: item?.shippingCost ?? 0))
-        _purchaseCost = State(initialValue: Self.inputText(from: item?.purchaseCost ?? 0))
+        _salePrice = State(initialValue: item.map { Self.inputText(from: $0.salePrice) } ?? "")
+        _platformFee = State(initialValue: item.map { Self.inputText(from: $0.platformFee) } ?? "")
+        _shippingCost = State(initialValue: item.map { Self.inputText(from: $0.shippingCost) } ?? "")
+        _purchaseCost = State(initialValue: item.map { Self.inputText(from: $0.purchaseCost) } ?? "")
         _sourceURL = State(initialValue: item?.sourceURL ?? "")
     }
 
@@ -71,10 +71,10 @@ struct SoldItemFormView: View {
         self.onSaveComplete = onSaveComplete
         _title = State(initialValue: importedMercariItem.title ?? "")
         _soldAt = State(initialValue: Date())
-        _salePrice = State(initialValue: Self.inputText(from: importedMercariItem.price ?? 0))
-        _platformFee = State(initialValue: Self.inputText(from: 0))
-        _shippingCost = State(initialValue: Self.inputText(from: 0))
-        _purchaseCost = State(initialValue: Self.inputText(from: 0))
+        _salePrice = State(initialValue: importedMercariItem.price.map { Self.inputText(from: $0) } ?? "")
+        _platformFee = State(initialValue: "")
+        _shippingCost = State(initialValue: "")
+        _purchaseCost = State(initialValue: "")
         _sourceURL = State(initialValue: importedMercariItem.url.absoluteString)
     }
 
@@ -221,7 +221,8 @@ struct SoldItemFormView: View {
             return
         }
 
-        shippingCost = Self.inputText(from: Decimal(defaultShippingCost))
+        let defaultShipping = Decimal(defaultShippingCost)
+        shippingCost = defaultShipping == 0 ? "" : Self.inputText(from: defaultShipping)
         updatePlatformFeeFromSalePriceIfNeeded()
         hasAppliedDefaultCosts = true
     }
@@ -231,8 +232,8 @@ struct SoldItemFormView: View {
             return
         }
 
-        let calculatedFee = decimal(from: salePrice) * Decimal(defaultMercariFeeRate)
-        platformFee = Self.inputText(from: calculatedFee.roundedScale0)
+        let calculatedFee = (decimal(from: salePrice) * Decimal(defaultMercariFeeRate)).roundedScale0
+        platformFee = calculatedFee == 0 ? "" : Self.inputText(from: calculatedFee)
     }
 
     private func applyShippingOption(_ option: ShippingOption) {
