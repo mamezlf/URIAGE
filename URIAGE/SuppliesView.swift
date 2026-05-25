@@ -9,17 +9,17 @@ import SwiftUI
 import SwiftData
 
 enum SupplyFilterPeriod: String, CaseIterable, Identifiable {
-    case oneMonth = "過去1ヶ月"
+    case thisMonth = "今月"
     case threeMonths = "過去3ヶ月"
     case sixMonths = "過去半年"
     
     var id: String { self.rawValue }
     
-    var monthsToSubtract: Int {
+    var calendarMonthsToSubtract: Int {
         switch self {
-        case .oneMonth: return -1
-        case .threeMonths: return -3
-        case .sixMonths: return -6
+        case .thisMonth: return 0
+        case .threeMonths: return -2
+        case .sixMonths: return -5
         }
     }
 }
@@ -30,7 +30,7 @@ struct SuppliesView: View {
 
     @State private var itemsPendingDeletion: [SupplyItem] = []
     @State private var isShowingDeleteConfirmation = false
-    @State private var selectedPeriod: SupplyFilterPeriod = .oneMonth
+    @State private var selectedPeriod: SupplyFilterPeriod = .thisMonth
     @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
 
     private var currencyFormatter: AppCurrencyFormatter {
@@ -56,9 +56,15 @@ struct SuppliesView: View {
     }
 
     private var filteredSupplies: [SupplyItem] {
-        guard let cutoffDate = Calendar.current.date(byAdding: .month, value: selectedPeriod.monthsToSubtract, to: Date()) else {
+        let now = Date()
+        guard let startOfThisMonth = Calendar.current.dateInterval(of: .month, for: now)?.start else {
             return supplies
         }
+        
+        guard let cutoffDate = Calendar.current.date(byAdding: .month, value: selectedPeriod.calendarMonthsToSubtract, to: startOfThisMonth) else {
+            return supplies
+        }
+        
         return supplies.filter { $0.purchaseDate >= cutoffDate }
     }
 
@@ -91,7 +97,7 @@ struct SuppliesView: View {
 
                 Section {
                     if filteredSupplies.isEmpty {
-                        Text("この期間に購入した資材はありません")
+                        Text("今月に購入した資材はありません")
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(filteredSupplies) { item in
