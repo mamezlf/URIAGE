@@ -152,6 +152,7 @@ struct SoldItemFormView: View {
                 amountField("仕入れ価格", text: $purchaseCost)
             }
         }
+        .hideKeyboardOnTap()
         .navigationTitle(originalItem == nil ? "販売記録を追加" : "販売記録を編集")
         .alert("保存できません", isPresented: $isShowingValidationAlert) {
             Button("確認", role: .cancel) {}

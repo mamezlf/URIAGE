@@ -52,9 +52,7 @@ struct ShippingCalculatorView: View {
             }
             .padding()
         }
-        .onTapGesture {
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-        }
+        .hideKeyboardOnTap()
         .scrollDismissesKeyboard(.interactively)
         .background(AppTheme.Colors.pageBackground)
         .navigationTitle("送料計算")
