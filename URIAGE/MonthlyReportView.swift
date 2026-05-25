@@ -36,12 +36,6 @@ struct MonthlyReportView: View {
         Array(monthlyItems.sorted { $0.profit > $1.profit }.prefix(5))
     }
 
-    private var lossItems: [SoldItem] {
-        monthlyItems
-            .filter { $0.profit < 0 }
-            .sorted { $0.profit < $1.profit }
-    }
-
     private var monthlySales: Decimal {
         monthlyItems.reduce(0) { $0 + $1.salePrice }
     }
@@ -135,13 +129,13 @@ struct MonthlyReportView: View {
                     reportRow("総コスト", currencyFormatter.string(from: monthlyTotalCost), valueTint: AppTheme.Colors.cost)
                     reportRow("資材費用", currencyFormatter.string(from: monthlySupplyCost), valueTint: AppTheme.Colors.cost)
                     reportRow("利益", currencyFormatter.string(from: monthlyProfit), valueTint: AppTheme.profitColor(for: monthlyProfit))
-                    reportRow("平均利益率", percentFormatter.string(from: averageProfitRate))
-                    reportRow("販売件数", "\(monthlySoldCount)")
                     reportRow(
                         "平均単品利益",
                         averageProfit.map { currencyFormatter.string(from: $0) } ?? "-",
                         valueTint: AppTheme.profitColor(for: averageProfit ?? 0)
                     )
+                    reportRow("販売件数", "\(monthlySoldCount)")
+                    reportRow("平均利益率", percentFormatter.string(from: averageProfitRate))
                 }
 
                 Section("利益上位5件") {
@@ -150,20 +144,6 @@ struct MonthlyReportView: View {
                             SoldItemDetailView(item: item)
                         } label: {
                             ReportItemRow(item: item, currencyFormatter: currencyFormatter, percentFormatter: percentFormatter)
-                        }
-                    }
-                }
-
-                Section("赤字商品") {
-                    if lossItems.isEmpty {
-                        emptyRow("この月の赤字商品はありません。")
-                    } else {
-                        ForEach(lossItems) { item in
-                            NavigationLink {
-                                SoldItemDetailView(item: item)
-                            } label: {
-                                ReportItemRow(item: item, currencyFormatter: currencyFormatter, percentFormatter: percentFormatter)
-                            }
                         }
                     }
                 }
