@@ -91,6 +91,7 @@ struct SoldItemListView: View {
                 .onDelete(perform: delete)
             }
         }
+        .safeAreaPadding(.top, 16)
         .navigationTitle("販売記録")
         .searchable(text: $searchText, prompt: "商品名を検索")
         .toolbar {

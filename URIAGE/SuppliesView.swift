@@ -90,17 +90,6 @@ struct SuppliesView: View {
                 }
 
                 Section {
-                    Picker("表示期間", selection: $selectedPeriod) {
-                        ForEach(SupplyFilterPeriod.allCases) { period in
-                            Text(period.rawValue).tag(period)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                    .listRowBackground(Color.clear)
-                }
-
-                Section("最近購入した資材") {
                     if filteredSupplies.isEmpty {
                         Text("この期間に購入した資材はありません")
                             .foregroundStyle(.secondary)
@@ -114,9 +103,23 @@ struct SuppliesView: View {
                         }
                         .onDelete(perform: deleteFiltered)
                     }
+                } header: {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("最近購入した資材")
+
+                        Picker("表示期間", selection: $selectedPeriod) {
+                            ForEach(SupplyFilterPeriod.allCases) { period in
+                                Text(period.rawValue).tag(period)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .textCase(nil)
+                    }
+                    .padding(.bottom, 4)
                 }
             }
         }
+        .safeAreaPadding(.top, 16)
         .navigationTitle("資材（梱包材など）")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
