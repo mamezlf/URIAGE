@@ -8,24 +8,58 @@
 import SwiftUI
 import SwiftData
 
+enum SupplyFilterPeriod: String, CaseIterable, Identifiable {
+    case oneMonth = "過去1ヶ月"
+    case threeMonths = "過去3ヶ月"
+    case sixMonths = "過去半年"
+    
+    var id: String { self.rawValue }
+    
+    var monthsToSubtract: Int {
+        switch self {
+        case .oneMonth: return -1
+        case .threeMonths: return -3
+        case .sixMonths: return -6
+        }
+    }
+}
+
 struct SuppliesView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \SupplyItem.purchaseDate, order: .reverse) private var supplies: [SupplyItem]
 
     @State private var itemsPendingDeletion: [SupplyItem] = []
     @State private var isShowingDeleteConfirmation = false
+    @State private var selectedPeriod: SupplyFilterPeriod = .oneMonth
     @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
 
     private var currencyFormatter: AppCurrencyFormatter {
         AppCurrencyFormatter(currencyCode: currencyCode)
     }
 
-    private var totalSupplyCost: Decimal {
-        SupplyCostCalculator.registeredSupplyCost(supplies)
-    }
-
     private var currentMonthSupplyCost: Decimal {
         SupplyCostCalculator.monthlyRegisteredSupplyCost(supplies: supplies, in: Date())
+    }
+
+    private var lastMonthSupplyCost: Decimal {
+        guard let lastMonth = Calendar.current.date(byAdding: .month, value: -1, to: Date()) else {
+            return 0
+        }
+        return SupplyCostCalculator.monthlyRegisteredSupplyCost(supplies: supplies, in: lastMonth)
+    }
+
+    private var currentMonthSuppliesCount: Int {
+        guard let interval = Calendar.current.dateInterval(of: .month, for: Date()) else {
+            return 0
+        }
+        return supplies.filter { $0.purchaseDate >= interval.start && $0.purchaseDate < interval.end }.count
+    }
+
+    private var filteredSupplies: [SupplyItem] {
+        guard let cutoffDate = Calendar.current.date(byAdding: .month, value: selectedPeriod.monthsToSubtract, to: Date()) else {
+            return supplies
+        }
+        return supplies.filter { $0.purchaseDate >= cutoffDate }
     }
 
     var body: some View {
@@ -48,22 +82,38 @@ struct SuppliesView: View {
             } else {
                 Section {
                     SupplyCostSummaryRow(
-                        totalCost: totalSupplyCost,
                         currentMonthCost: currentMonthSupplyCost,
-                        itemCount: supplies.count,
+                        lastMonthCost: lastMonthSupplyCost,
+                        currentMonthCount: currentMonthSuppliesCount,
                         currencyFormatter: currencyFormatter
                     )
                 }
 
-                Section("購入した資材") {
-                    ForEach(supplies) { item in
-                        NavigationLink {
-                            SupplyItemFormView(item: item)
-                        } label: {
-                            SupplyItemRow(item: item, currencyFormatter: currencyFormatter)
+                Section {
+                    Picker("表示期間", selection: $selectedPeriod) {
+                        ForEach(SupplyFilterPeriod.allCases) { period in
+                            Text(period.rawValue).tag(period)
                         }
                     }
-                    .onDelete(perform: delete)
+                    .pickerStyle(.segmented)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                    .listRowBackground(Color.clear)
+                }
+
+                Section("最近購入した資材") {
+                    if filteredSupplies.isEmpty {
+                        Text("この期間に購入した資材はありません")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(filteredSupplies) { item in
+                            NavigationLink {
+                                SupplyItemFormView(item: item)
+                            } label: {
+                                SupplyItemRow(item: item, currencyFormatter: currencyFormatter)
+                            }
+                        }
+                        .onDelete(perform: deleteFiltered)
+                    }
                 }
             }
         }
@@ -91,8 +141,8 @@ struct SuppliesView: View {
         }
     }
 
-    private func delete(at offsets: IndexSet) {
-        itemsPendingDeletion = offsets.map { supplies[$0] }
+    private func deleteFiltered(at offsets: IndexSet) {
+        itemsPendingDeletion = offsets.map { filteredSupplies[$0] }
         isShowingDeleteConfirmation = true
     }
 
@@ -119,7 +169,7 @@ private struct SupplyItemRow: View {
 
                 Spacer(minLength: 12)
 
-                Text(currencyFormatter.string(from: item.unitCost))
+                Text(currencyFormatter.string(from: item.totalCost))
                     .font(.subheadline.bold())
                     .foregroundStyle(AppTheme.Colors.cost)
                     .lineLimit(1)
@@ -136,7 +186,7 @@ private struct SupplyItemRow: View {
 
                 Spacer(minLength: 10)
 
-                Text("合計 \(currencyFormatter.string(from: item.totalCost)) / \(item.quantity)個")
+                Text("単価 \(currencyFormatter.string(from: item.unitCost)) × \(item.quantity)個")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -146,27 +196,27 @@ private struct SupplyItemRow: View {
 }
 
 private struct SupplyCostSummaryRow: View {
-    let totalCost: Decimal
     let currentMonthCost: Decimal
-    let itemCount: Int
+    let lastMonthCost: Decimal
+    let currentMonthCount: Int
     let currencyFormatter: AppCurrencyFormatter
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
-                Text("資材にかかったお金")
+                Text("今月資材にかかったお金")
                     .font(.headline)
 
                 Spacer(minLength: 12)
 
-                Text(currencyFormatter.string(from: totalCost))
+                Text(currencyFormatter.string(from: currentMonthCost))
                     .font(.title3.bold())
                     .foregroundStyle(AppTheme.Colors.cost)
             }
 
             HStack(spacing: 12) {
-                summaryPill("今月", currencyFormatter.string(from: currentMonthCost), systemImage: "calendar")
-                summaryPill("登録", "\(itemCount)件", systemImage: "shippingbox")
+                summaryPill("先月", currencyFormatter.string(from: lastMonthCost), systemImage: "calendar")
+                summaryPill("今月登録", "\(currentMonthCount)件", systemImage: "shippingbox")
             }
         }
         .padding(.vertical, 6)

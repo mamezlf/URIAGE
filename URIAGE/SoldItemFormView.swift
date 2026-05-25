@@ -146,6 +146,7 @@ struct SoldItemFormView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
                 .padding(.vertical, 2)
 
                 amountField("仕入れ価格", text: $purchaseCost)

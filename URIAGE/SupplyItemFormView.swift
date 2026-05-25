@@ -16,7 +16,7 @@ struct SupplyItemFormView: View {
 
     @State private var name: String
     @State private var type: String
-    @State private var totalCost: String
+    @State private var unitCost: String
     @State private var quantity: String
     @State private var purchaseDate: Date
     @State private var notes: String
@@ -27,7 +27,7 @@ struct SupplyItemFormView: View {
         self.originalItem = item
         _name = State(initialValue: item?.name ?? "")
         _type = State(initialValue: item.map { SupplyItemType.displayName(for: $0.type) } ?? SupplyItemType.packaging)
-        _totalCost = State(initialValue: Self.inputText(from: item?.totalCost ?? 0))
+        _unitCost = State(initialValue: item.map { Self.inputText(from: $0.unitCost) } ?? "")
         _quantity = State(initialValue: item.map { String($0.quantity) } ?? "")
         _purchaseDate = State(initialValue: item?.purchaseDate ?? Date())
         _notes = State(initialValue: item?.notes ?? "")
@@ -50,7 +50,7 @@ struct SupplyItemFormView: View {
             }
 
             Section("数量とコスト") {
-                amountField("購入金額", text: $totalCost)
+                amountField("単価", text: $unitCost)
                 integerField("数量", text: $quantity)
             }
         }
@@ -101,8 +101,9 @@ struct SupplyItemFormView: View {
 
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = trimmedOptional(notes)
-        let totalCostValue = decimal(from: totalCost)
+        let unitCostValue = decimal(from: unitCost)
         let quantityValue = int(from: quantity)
+        let totalCostValue = unitCostValue * Decimal(quantityValue)
 
         if let originalItem {
             originalItem.name = trimmedName
@@ -135,8 +136,8 @@ struct SupplyItemFormView: View {
             return false
         }
 
-        if decimal(from: totalCost) < 0 {
-            validationMessage = "購入金額は0以上の金額を入力してください。"
+        if decimal(from: unitCost) < 0 {
+            validationMessage = "単価は0以上の金額を入力してください。"
             return false
         }
 
