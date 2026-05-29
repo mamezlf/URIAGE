@@ -173,10 +173,3 @@ func seedDefaultPresets(modelContext: ModelContext) {
         modelContext.insert(preset)
     }
 }
-
-private extension Decimal {
-    var displayText: String {
-        let number = NSDecimalNumber(decimal: self)
-        return number.stringValue
-    }
-}

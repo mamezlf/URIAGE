@@ -23,10 +23,3 @@ final class ShippingPreset {
         "\(length.displayText) x \(width.displayText) x \(height.displayText) / \(weight.displayText)g"
     }
 }
-
-private extension Decimal {
-    var displayText: String {
-        let number = NSDecimalNumber(decimal: self)
-        return number.stringValue
-    }
-}
