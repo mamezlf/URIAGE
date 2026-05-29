@@ -79,7 +79,12 @@ struct SoldItemFormView: View {
     }
 
     var body: some View {
-        Form {
+        FormViewTemplate(
+            title: originalItem == nil ? "販売記録を追加" : "販売記録を編集",
+            onSave: save,
+            onCancel: { dismiss() },
+            isSaveDisabled: hasCompletedSave
+        ) {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("利益")
@@ -152,8 +157,6 @@ struct SoldItemFormView: View {
                 amountField("仕入れ価格", text: $purchaseCost)
             }
         }
-        .hideKeyboardOnTap()
-        .navigationTitle(originalItem == nil ? "販売記録を追加" : "販売記録を編集")
         .alert("保存できません", isPresented: $isShowingValidationAlert) {
             Button("確認", role: .cancel) {}
         } message: {
@@ -171,18 +174,6 @@ struct SoldItemFormView: View {
         .sheet(isPresented: $isShowingShippingCalculator) {
             NavigationStack {
                 ShippingCalculatorView(onSelect: applyShippingOption)
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("キャンセル", role: .cancel) {
-                    dismiss()
-                }
-            }
-
-            ToolbarItem(placement: .confirmationAction) {
-                Button("保存", action: save)
-                    .disabled(hasCompletedSave)
             }
         }
     }
@@ -291,13 +282,17 @@ struct SoldItemFormView: View {
     }
 
     private func completeSave() {
-        if let onSaveComplete {
-            onSaveComplete()
-        } else if let moveToHomeAfterRecordSave {
-            moveToHomeAfterRecordSave()
-        } else {
-            dismiss()
+        if originalItem == nil {
+            if let onSaveComplete {
+                onSaveComplete()
+                return
+            } else if let moveToHomeAfterRecordSave {
+                moveToHomeAfterRecordSave()
+                return
+            }
         }
+
+        dismiss()
     }
 
     private func validate() -> Bool {

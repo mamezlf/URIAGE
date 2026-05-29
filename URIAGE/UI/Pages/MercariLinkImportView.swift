@@ -10,6 +10,7 @@ import SwiftData
 import UIKit
 
 struct MercariLinkImportView: View {
+    @Environment(\.moveToHomeAfterRecordSave) private var moveToHomeAfterRecordSave
     var onRecordSaved: (() -> Void)?
 
     @State private var linkText = ""
@@ -21,6 +22,10 @@ struct MercariLinkImportView: View {
 
     private var trimmedLink: String {
         linkText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var effectiveOnRecordSaved: (() -> Void)? {
+        onRecordSaved ?? moveToHomeAfterRecordSave
     }
 
     private let mercariLinkGuideURL = URL(string: "https://jp-news.mercari.com/info/37414")!
@@ -130,16 +135,15 @@ struct MercariLinkImportView: View {
 
             Section {
                 NavigationLink {
-                    SoldItemFormView(onSaveComplete: onRecordSaved)
+                    SoldItemFormView(onSaveComplete: effectiveOnRecordSaved)
                 } label: {
                     Label("手入力で記録", systemImage: "square.and.pencil")
                 }
             }
         }
-        .hideKeyboardOnTap()
         .navigationTitle("リンク入力")
         .navigationDestination(item: $importedItem) { item in
-            SoldItemFormView(importedMercariItem: item, onSaveComplete: onRecordSaved)
+            SoldItemFormView(importedMercariItem: item, onSaveComplete: effectiveOnRecordSaved)
         }
         .alert("リンク読み込み", isPresented: $isShowingAlert) {
             if let fallbackItem {
