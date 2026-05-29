@@ -11,6 +11,7 @@ import SwiftData
 struct SupplyItemFormView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.moveToHomeAfterRecordSave) private var moveToHomeAfterRecordSave
 
     private let originalItem: SupplyItem?
 
@@ -54,7 +55,6 @@ struct SupplyItemFormView: View {
                 integerField("数量", text: $quantity)
             }
         }
-        .hideKeyboardOnTap()
         .navigationTitle(originalItem == nil ? "資材を追加" : "資材を編集")
         .alert("保存できません", isPresented: $isShowingValidationAlert) {
             Button("確認", role: .cancel) {}
@@ -126,6 +126,13 @@ struct SupplyItemFormView: View {
             )
 
             modelContext.insert(item)
+        }
+
+        if originalItem == nil {
+            if let moveToHomeAfterRecordSave {
+                moveToHomeAfterRecordSave()
+                return
+            }
         }
 
         dismiss()
