@@ -102,6 +102,18 @@ struct ShippingCalculatorView: View {
                         .font(.headline)
                         .foregroundStyle(AppTheme.Colors.cost)
                 }
+
+                if let onSelect {
+                    Button {
+                        onSelect(recommendedOption)
+                        dismiss()
+                    } label: {
+                        Label("この送料を使う", systemImage: "checkmark.circle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(PrimaryActionButtonStyle())
+                    .padding(.top, 4)
+                }
             } else {
                 Text(recommendationMessage)
                     .font(.subheadline)

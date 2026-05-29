@@ -15,7 +15,10 @@ struct EmptyResultRow: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            
+            Spacer(minLength: 0)
         }
         .padding(AppTheme.Metrics.cardPadding)
+        .frame(maxWidth: .infinity)
     }
 }

@@ -73,6 +73,7 @@ struct ShippingOptionRow: View {
             }
         }
         .padding(AppTheme.Metrics.cardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
