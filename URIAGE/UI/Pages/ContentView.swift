@@ -19,9 +19,11 @@ private enum AppTab: Hashable {
 private enum HomeRoute: Hashable {
     case mercariLinkImport
     case shippingCalculator
+    case soldItemForm
+    case supplyItemForm
 }
 
-private struct MoveToHomeAfterRecordSaveKey: EnvironmentKey {
+struct MoveToHomeAfterRecordSaveKey: EnvironmentKey {
     static let defaultValue: (() -> Void)? = nil
 }
 
@@ -35,58 +37,70 @@ extension EnvironmentValues {
 struct ContentView: View {
     @Query(sort: \SoldItem.soldAt, order: .reverse) private var items: [SoldItem]
     @Query(sort: \SupplyItem.purchaseDate, order: .reverse) private var supplies: [SupplyItem]
-    @State private var homePath = NavigationPath()
     @State private var selectedTab: AppTab = .home
+    @State private var homePath = NavigationPath()
+    @State private var recordsPath = NavigationPath()
+    @State private var reportsPath = NavigationPath()
+    @State private var suppliesPath = NavigationPath()
 
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack(path: $homePath) {
                 DashboardView(items: items, supplies: supplies)
-                    // ★ 追加: HomeRouteをhomePathで管理するdestination登録
                     .navigationDestination(for: HomeRoute.self) { route in
                         switch route {
                         case .mercariLinkImport:
                             MercariLinkImportView()
                         case .shippingCalculator:
                             ShippingCalculatorView()
+                        case .soldItemForm:
+                            SoldItemFormView()
+                        case .supplyItemForm:
+                            SupplyItemFormView()
                         }
                     }
             }
+            .environment(\.moveToHomeAfterRecordSave, moveToHome)
             .tabItem {
                 Label("ホーム", systemImage: "house.fill")
             }
             .tag(AppTab.home)
 
-            NavigationStack {
+            NavigationStack(path: $recordsPath) {
                 SoldItemListView()
             }
+            .environment(\.moveToHomeAfterRecordSave, moveToHome)
             .tabItem {
                 Label("記録", systemImage: "list.bullet.rectangle")
             }
             .tag(AppTab.records)
 
-            NavigationStack {
+            NavigationStack(path: $reportsPath) {
                 MonthlyReportView()
             }
+            .environment(\.moveToHomeAfterRecordSave, moveToHome)
             .tabItem {
                 Label("レポート", systemImage: "chart.bar.xaxis")
             }
             .tag(AppTab.reports)
 
-            NavigationStack {
+            NavigationStack(path: $suppliesPath) {
                 SuppliesView()
             }
+            .environment(\.moveToHomeAfterRecordSave, moveToHome)
             .tabItem {
                 Label("資材", systemImage: "shippingbox")
             }
             .tag(AppTab.supplies)
         }
-        .environment(\.moveToHomeAfterRecordSave, moveToHome)
     }
 
     private func moveToHome() {
         selectedTab = .home
         homePath = NavigationPath()
+        recordsPath = NavigationPath()
+        reportsPath = NavigationPath()
+        suppliesPath = NavigationPath()
     }
 }
 
@@ -137,9 +151,7 @@ private struct DashboardView: View {
                         message: "最初の販売記録を追加すると、売上と利益をここで確認できます。",
                         systemImage: "tray"
                     ) {
-                        NavigationLink {
-                            SoldItemFormView()
-                        } label: {
+                        NavigationLink(value: HomeRoute.soldItemForm) {
                             Label("最初の記録を追加", systemImage: "plus")
                         }
                     }
@@ -209,9 +221,7 @@ private struct DashboardView: View {
         .navigationTitle("ホーム")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    SoldItemFormView()
-                } label: {
+                NavigationLink(value: HomeRoute.soldItemForm) {
                     Label("追加", systemImage: "plus")
                 }
             }
