@@ -3,7 +3,6 @@ import SwiftUI
 struct SoldItemListRow: View {
     let item: SoldItem
     let currencyFormatter: AppCurrencyFormatter
-    let percentFormatter: AppPercentFormatter
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -30,18 +29,12 @@ struct SoldItemListRow: View {
 
                 Spacer(minLength: 12)
 
-                VStack(alignment: .trailing, spacing: 4) {
-                    ProfitText(
-                        value: item.profit,
-                        formatter: currencyFormatter,
-                        font: .caption.bold(),
-                        showPrefix: true
-                    )
-
-                    Text("利益率 \(percentFormatter.string(from: item.profitRate))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                ProfitText(
+                    value: item.profit,
+                    formatter: currencyFormatter,
+                    font: .caption.bold(),
+                    showPrefix: true
+                )
             }
         }
         .padding(.vertical, 6)

@@ -23,7 +23,6 @@ struct SoldItemListView: View {
         AppCurrencyFormatter(currencyCode: currencyCode)
     }
 
-    private let percentFormatter = AppPercentFormatter()
     private let calendar = Calendar.current
 
     private var filteredAndSortedItems: [SoldItem] {
@@ -82,8 +81,7 @@ struct SoldItemListView: View {
                     } label: {
                         SoldItemListRow(
                             item: item,
-                            currencyFormatter: currencyFormatter,
-                            percentFormatter: percentFormatter
+                            currencyFormatter: currencyFormatter
                         )
                     }
                 }
