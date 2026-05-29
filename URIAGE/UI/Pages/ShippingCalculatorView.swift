@@ -6,9 +6,12 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ShippingCalculatorView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \ShippingPreset.createdAt) private var presets: [ShippingPreset]
 
     private let onSelect: ((ShippingOption) -> Void)?
 
@@ -48,6 +51,11 @@ struct ShippingCalculatorView: View {
             recommendationPanel
             manualCalculatorSection
             resultSection
+        }
+        .onAppear {
+            if presets.isEmpty {
+                seedDefaultPresets(modelContext: modelContext)
+            }
         }
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle("送料計算")
@@ -143,25 +151,32 @@ struct ShippingCalculatorView: View {
                     .padding(.top, AppTheme.Metrics.cardPadding)
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("よく使うサイズ")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                    HStack {
+                        Text("よく使うサイズ")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        
+                        Spacer()
+                        
+                        NavigationLink {
+                            ShippingPresetListView()
+                        } label: {
+                            Text("編集")
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.Colors.primary)
+                        }
+                    }
 
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                        PresetButton(title: "A4・薄手", subtitle: "30 x 21 x 2 / 150g") {
-                            applyPreset(length: "30", width: "21", height: "2", weight: "150")
-                        }
-
-                        PresetButton(title: "A5・薄手", subtitle: "21 x 15 x 2 / 80g") {
-                            applyPreset(length: "21", width: "15", height: "2", weight: "800")
-                        }
-
-                        PresetButton(title: "60サイズ", subtitle: "30 x 20 x 10 / 150g") {
-                            applyPreset(length: "30", width: "20", height: "10", weight: "1500")
-                        }
-
-                        PresetButton(title: "80サイズ", subtitle: "40 x 25 x 15 / 300g") {
-                            applyPreset(length: "40", width: "25", height: "15", weight: "3000")
+                        ForEach(presets) { preset in
+                            PresetButton(title: preset.title, subtitle: preset.subtitle) {
+                                applyPreset(
+                                    length: preset.length.displayText,
+                                    width: preset.width.displayText,
+                                    height: preset.height.displayText,
+                                    weight: preset.weight.displayText
+                                )
+                            }
                         }
                     }
                 }
