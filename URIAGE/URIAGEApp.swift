@@ -14,7 +14,7 @@ struct URIAGEApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [SoldItem.self, SupplyItem.self])
+        .modelContainer(for: [SoldItem.self, SupplyItem.self, ShippingPreset.self])
     }
 }
 
