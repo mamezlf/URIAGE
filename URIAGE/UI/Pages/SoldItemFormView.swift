@@ -333,7 +333,8 @@ struct SoldItemFormView: View {
 
     @MainActor
     private func importMercariItem() async {
-        if let clipboardText = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+        if sourceURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           let clipboardText = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines),
            clipboardText.isEmpty == false {
             sourceURL = clipboardText
         }

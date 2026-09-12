@@ -141,19 +141,25 @@ struct ShippingPresetFormView: View {
     }
 
     private func save() {
-        let l = Decimal(string: length) ?? 0
-        let w = Decimal(string: width) ?? 0
-        let h = Decimal(string: height) ?? 0
-        let wg = Decimal(string: weight) ?? 0
+        let presetLength = Decimal(string: length) ?? 0
+        let presetWidth = Decimal(string: width) ?? 0
+        let presetHeight = Decimal(string: height) ?? 0
+        let presetWeight = Decimal(string: weight) ?? 0
         
         if let preset = preset {
             preset.title = title
-            preset.length = l
-            preset.width = w
-            preset.height = h
-            preset.weight = wg
+            preset.length = presetLength
+            preset.width = presetWidth
+            preset.height = presetHeight
+            preset.weight = presetWeight
         } else {
-            let newPreset = ShippingPreset(title: title, length: l, width: w, height: h, weight: wg)
+            let newPreset = ShippingPreset(
+                title: title,
+                length: presetLength,
+                width: presetWidth,
+                height: presetHeight,
+                weight: presetWeight
+            )
             modelContext.insert(newPreset)
         }
         

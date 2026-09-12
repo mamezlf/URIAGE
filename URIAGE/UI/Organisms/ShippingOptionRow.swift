@@ -154,7 +154,10 @@ extension ShippingMethod {
 
     var badges: [String] {
         switch self {
-        case .nekopos, .yuPacket, .yuPacketPost, .yuPacketPostMini, .yuPacketPlus, .takkyubinCompact, .takkyubin60, .takkyubin80, .takkyubin100, .takkyubin120, .takkyubin140, .takkyubin160, .takkyubin180, .takkyubin200, .yuPack60, .yuPack80, .yuPack100, .yuPack120, .yuPack140, .yuPack160, .yuPack170:
+        case .nekopos, .yuPacket, .yuPacketPost, .yuPacketPostMini, .yuPacketPlus,
+             .takkyubinCompact, .takkyubin60, .takkyubin80, .takkyubin100, .takkyubin120,
+             .takkyubin140, .takkyubin160, .takkyubin180, .takkyubin200, .yuPack60,
+             .yuPack80, .yuPack100, .yuPack120, .yuPack140, .yuPack160, .yuPack170:
             return ["匿名", "追跡"]
         case .clickPost, .letterPackLight, .letterPackPlus, .konekoBin420:
             return ["追跡"]
@@ -165,11 +168,15 @@ extension ShippingMethod {
 
     var systemImage: String {
         switch self {
-        case .nekopos, .yuPacket, .yuPacketPost, .yuPacketPostMini, .clickPost, .standardMail, .nonStandardMailStandardSize, .nonStandardMailNonStandardSize, .letterPackLight, .letterPackPlus, .smartLetter, .konekoBin420:
+        case .nekopos, .yuPacket, .yuPacketPost, .yuPacketPostMini, .clickPost,
+             .standardMail, .nonStandardMailStandardSize, .nonStandardMailNonStandardSize,
+             .letterPackLight, .letterPackPlus, .smartLetter, .konekoBin420:
             return "envelope"
         case .yuPacketPlus, .takkyubinCompact:
             return "shippingbox"
-        case .takkyubin60, .takkyubin80, .takkyubin100, .takkyubin120, .takkyubin140, .takkyubin160, .takkyubin180, .takkyubin200, .yuPack60, .yuPack80, .yuPack100, .yuPack120, .yuPack140, .yuPack160, .yuPack170:
+        case .takkyubin60, .takkyubin80, .takkyubin100, .takkyubin120, .takkyubin140,
+             .takkyubin160, .takkyubin180, .takkyubin200, .yuPack60, .yuPack80,
+             .yuPack100, .yuPack120, .yuPack140, .yuPack160, .yuPack170:
             return "box.truck"
         }
     }
