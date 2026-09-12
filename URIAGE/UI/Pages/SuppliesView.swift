@@ -24,6 +24,11 @@ enum SupplyFilterPeriod: String, CaseIterable, Identifiable {
     }
 }
 
+enum SupplyRoute: Hashable {
+    case add
+    case edit(UUID)
+}
+
 struct SuppliesView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \SupplyItem.purchaseDate, order: .reverse) private var supplies: [SupplyItem]
@@ -77,9 +82,7 @@ struct SuppliesView: View {
                         message: "梱包材や送料関連の資材を登録すると、商品ごとのコスト計算に使いやすくなります。",
                         systemImage: "archivebox"
                     ) {
-                        NavigationLink {
-                            SupplyItemFormView()
-                        } label: {
+                        NavigationLink(value: SupplyRoute.add) {
                             Label("資材を追加", systemImage: "plus")
                         }
                     }
@@ -101,9 +104,7 @@ struct SuppliesView: View {
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(filteredSupplies) { item in
-                            NavigationLink {
-                                SupplyItemFormView(item: item)
-                            } label: {
+                            NavigationLink(value: SupplyRoute.edit(item.id)) {
                                 SupplyItemRow(item: item, currencyFormatter: currencyFormatter)
                             }
                         }
@@ -129,9 +130,7 @@ struct SuppliesView: View {
         .navigationTitle("資材（梱包材など）")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    SupplyItemFormView()
-                } label: {
+                NavigationLink(value: SupplyRoute.add) {
                     Label("資材を追加", systemImage: "plus")
                 }
             }

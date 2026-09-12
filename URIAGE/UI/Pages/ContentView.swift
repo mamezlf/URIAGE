@@ -86,6 +86,22 @@ struct ContentView: View {
 
             NavigationStack(path: $suppliesPath) {
                 SuppliesView()
+                    .navigationDestination(for: SupplyRoute.self) { route in
+                        switch route {
+                        case .add:
+                            SupplyItemFormView()
+                        case .edit(let itemID):
+                            if let item = supplies.first(where: { $0.id == itemID }) {
+                                SupplyItemFormView(item: item)
+                            } else {
+                                ContentUnavailableView(
+                                    "資材が見つかりません",
+                                    systemImage: "shippingbox",
+                                    description: Text("削除された可能性があります。")
+                                )
+                            }
+                        }
+                    }
             }
             .environment(\.moveToHomeAfterRecordSave, moveToHome)
             .tabItem {
