@@ -12,7 +12,6 @@ import SwiftData
 final class SoldItem {
     var id: UUID
     var title: String
-    var categoryName: String
     var salePrice: Decimal
     var quantity: Int = 1
     var purchaseCost: Decimal
@@ -26,19 +25,9 @@ final class SoldItem {
     var memo: String?
     var sourceURL: String?
 
-    var category: Category {
-        get {
-            Category(name: categoryName)
-        }
-        set {
-            categoryName = newValue.name
-        }
-    }
-
     init(
         id: UUID = UUID(),
         title: String,
-        category: Category = .uncategorized,
         salePrice: Decimal,
         quantity: Int = 1,
         purchaseCost: Decimal = 0,
@@ -54,7 +43,6 @@ final class SoldItem {
     ) {
         self.id = id
         self.title = title
-        self.categoryName = category.name
         self.salePrice = salePrice
         self.quantity = quantity
         self.purchaseCost = purchaseCost
@@ -107,7 +95,6 @@ final class SoldItem {
 extension SoldItem {
     static let sample = SoldItem(
         title: "メルカリ サンプル商品",
-        category: Category(name: "ファッション"),
         salePrice: 3_000,
         purchaseCost: 1_200,
         shippingCost: 210,
