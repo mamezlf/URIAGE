@@ -10,8 +10,8 @@ import SwiftData
 
 enum SupplyFilterPeriod: String, CaseIterable, Identifiable {
     case thisMonth = "今月"
-    case threeMonths = "過去3ヶ月"
-    case sixMonths = "過去半年"
+    case threeMonths = "3ヶ月"
+    case sixMonths = "半年"
     
     var id: String { self.rawValue }
     
