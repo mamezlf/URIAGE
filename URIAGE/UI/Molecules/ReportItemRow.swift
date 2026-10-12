@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ReportItemRow: View {
-    let item: SoldItem
+    let item: SoldRecord
     let currencyFormatter: AppCurrencyFormatter
 
     var body: some View {

@@ -7,8 +7,8 @@
 
 import Foundation
 
-struct YearlyReport {
-    struct Month: Identifiable, Equatable {
+nonisolated struct YearlyReport: Sendable {
+    nonisolated struct Month: Identifiable, Equatable, Sendable {
         /// 1...12
         let index: Int
         let start: Date
@@ -27,7 +27,7 @@ struct YearlyReport {
         var supplyCost: Decimal { registeredSupplyCost + directPackagingCost }
     }
 
-    struct PeriodTotals: Equatable {
+    nonisolated struct PeriodTotals: Equatable, Sendable {
         let sales: Decimal
         let profit: Decimal
     }
@@ -39,15 +39,17 @@ struct YearlyReport {
     let elapsedMonthCount: Int
     /// 今年は前年の同じ期間（1/1〜前年の今日）、過去の年は前年通年。前年に販売がなければ nil
     let previousPeriod: PeriodTotals?
-    let topProfitItems: [SoldItem]
+    let topProfitItems: [SoldRecord]
 
     init(
         year: Date,
-        soldItems: [SoldItem],
-        supplies: [SupplyItem],
+        input: ReportInput,
         now: Date = Date(),
         calendar: Calendar = .current
     ) {
+        let soldItems = input.soldItems
+        let supplies = input.supplies
+
         let yearInterval = calendar.dateInterval(of: .year, for: year)
             ?? DateInterval(start: year, duration: 0)
         yearStart = yearInterval.start
@@ -61,7 +63,7 @@ struct YearlyReport {
             return Month(index: offset + 1, start: start, isFuture: start > now)
         }
 
-        var yearItems: [SoldItem] = []
+        var yearItems: [SoldRecord] = []
         for item in soldItems where SupplyCostCalculator.isDate(item.soldAt, in: yearInterval) {
             let i = calendar.component(.month, from: item.soldAt) - 1
             buckets[i].sales += item.salePrice
@@ -146,5 +148,25 @@ struct YearlyReport {
     var bestTrendPoint: ReportTrendPoint? {
         guard let bestMonth else { return nil }
         return trendPoints.first { $0.label == bestMonth.label }
+    }
+}
+
+// MARK: - SwiftData モデルから直接集計する（テスト・メインスレッド用）
+
+extension YearlyReport {
+    @MainActor
+    init(
+        year: Date,
+        soldItems: [SoldItem],
+        supplies: [SupplyItem],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) {
+        self.init(
+            year: year,
+            input: ReportInput(items: soldItems, supplies: supplies),
+            now: now,
+            calendar: calendar
+        )
     }
 }

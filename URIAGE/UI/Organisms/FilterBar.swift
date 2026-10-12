@@ -120,9 +120,11 @@ struct FilterBar: View {
                 Text("\(resultCount)件")
                     .font(.headline)
                     .monospacedDigit()
+                    .contentTransition(.numericText(value: Double(resultCount)))
                     .foregroundStyle(.primary)
             } trailing: {
                 Text(activeFilterSummary)
+                    .contentTransition(.interpolate)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

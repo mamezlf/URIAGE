@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ReportTrendPoint: Identifiable, Equatable {
+nonisolated struct ReportTrendPoint: Identifiable, Equatable, Sendable {
     /// 表示名（「9月」「2026年」）。グラフの x 値にも使う
     let label: String
     /// x 軸に出す短いラベル（「9」「'26」）

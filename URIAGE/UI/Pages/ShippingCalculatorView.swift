@@ -48,16 +48,9 @@ struct ShippingCalculatorView: View {
 
     var body: some View {
         ScrollableContainer {
-            DeferredContent(delay: SkeletonTiming.afterPush) {
-                VStack(alignment: .leading, spacing: AppTheme.Metrics.sectionSpacing) {
-                    recommendationPanel
-                    manualCalculatorSection
-                    resultSection
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            } placeholder: {
-                CardStackSkeleton()
-            }
+            recommendationPanel
+            manualCalculatorSection
+            resultSection
         }
         .onAppear {
             if presets.isEmpty {

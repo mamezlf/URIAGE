@@ -7,10 +7,10 @@
 
 import Foundation
 
-struct AllTimeReport {
+nonisolated struct AllTimeReport: Sendable {
     static let minimumYearCount = 5
 
-    struct Year: Identifiable, Equatable {
+    nonisolated struct Year: Identifiable, Equatable, Sendable {
         let year: Int
         let start: Date
         var sales: Decimal = 0
@@ -29,14 +29,16 @@ struct AllTimeReport {
 
     /// 古い年 → 新しい年。記録がなければ空
     let years: [Year]
-    let topProfitItems: [SoldItem]
+    let topProfitItems: [SoldRecord]
 
     init(
-        soldItems: [SoldItem],
-        supplies: [SupplyItem],
+        input: ReportInput,
         now: Date = Date(),
         calendar: Calendar = .current
     ) {
+        let soldItems = input.soldItems
+        let supplies = input.supplies
+
         let dates = soldItems.map(\.soldAt) + supplies.map(\.purchaseDate)
         guard let earliest = dates.min() else {
             years = []
@@ -101,5 +103,23 @@ struct AllTimeReport {
     func trendPoint(for year: Year?) -> ReportTrendPoint? {
         guard let year else { return nil }
         return trendPoints.first { $0.label == year.label }
+    }
+}
+
+// MARK: - SwiftData モデルから直接集計する（テスト・メインスレッド用）
+
+extension AllTimeReport {
+    @MainActor
+    init(
+        soldItems: [SoldItem],
+        supplies: [SupplyItem],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) {
+        self.init(
+            input: ReportInput(items: soldItems, supplies: supplies),
+            now: now,
+            calendar: calendar
+        )
     }
 }

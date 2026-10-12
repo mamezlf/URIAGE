@@ -2,7 +2,8 @@
 //  SkeletonLayouts.swift
 //  URIAGE
 //
-//  各画面の実レイアウトを真似たスケルトン。行の高さ・余白は本物の Row に合わせている。
+//  実レイアウトを真似たスケルトン。行の高さ・余白は本物の Row に合わせている。
+//  待ちが発生する場面（レポートの集計・記録タブの初回表示）だけで使う。
 //
 
 import SwiftUI
@@ -137,112 +138,14 @@ struct ListTemplateSkeletonSections: View {
     }
 }
 
-/// 資材一覧の List 内に入れるスケルトン（サマリー + 期間バー + 行）
-struct SuppliesSkeletonSections: View {
-    var rowCount: Int = 6
-
-    var body: some View {
-        Section {
-            VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 8) {
-                    SkeletonBlock(width: 88, height: 11)
-                    SkeletonBlock(width: 150, height: 34, cornerRadius: 8)
-                }
-                HStack(spacing: 8) {
-                    SkeletonBlock(height: 44, cornerRadius: 8)
-                    SkeletonBlock(height: 44, cornerRadius: 8)
-                }
-            }
-            .padding(.vertical, 6)
-        }
-        .skeletonAccessibility()
-
-        Section {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    SkeletonBlock(width: 56, height: 16)
-                    Spacer()
-                    SkeletonBlock(width: 96, height: 12)
-                }
-                SkeletonBlock(height: 32, cornerRadius: 8)
-            }
-            .padding(.vertical, 4)
-        }
-        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-        .accessibilityHidden(true)
-
-        Section {
-            ForEach(0..<rowCount, id: \.self) { index in
-                SkeletonTwoLineRow(index: index + 3)
-            }
-        }
-        .accessibilityHidden(true)
-    }
+#Preview("Monthly") {
+    ReportSkeleton()
 }
 
-/// Form 画面（販売記録・資材の追加 / 編集）の Form 内に入れるスケルトン
-struct FormSkeletonSections: View {
-    var body: some View {
-        Section {
-            VStack(alignment: .leading, spacing: 8) {
-                SkeletonBlock(width: 40, height: 11)
-                SkeletonBlock(width: 160, height: 34, cornerRadius: 8)
-            }
-            .padding(.vertical, 6)
-        }
-        .skeletonAccessibility()
-
-        Section {
-            ForEach(0..<3, id: \.self) { index in
-                SkeletonBlock(width: SkeletonWidths.title(index) - 20, height: 16)
-                    .padding(.vertical, 4)
-            }
-        } header: {
-            SkeletonBlock(width: 56, height: 10)
-        }
-        .accessibilityHidden(true)
-
-        Section {
-            ForEach(0..<4, id: \.self) { index in
-                SkeletonKeyValueRow(index: index)
-            }
-        } header: {
-            SkeletonBlock(width: 40, height: 10)
-        }
-        .accessibilityHidden(true)
-    }
-}
-
-/// 送料計算画面（カード並び）のスケルトン
-struct CardStackSkeleton: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Metrics.sectionSpacing) {
-            SkeletonBlock(height: 132, cornerRadius: AppTheme.Metrics.cardCornerRadius)
-
-            VStack(alignment: .leading, spacing: AppTheme.Metrics.cardSpacing) {
-                SkeletonBlock(width: 96, height: 16)
-                SkeletonBlock(height: 176, cornerRadius: AppTheme.Metrics.cardCornerRadius)
-            }
-
-            VStack(alignment: .leading, spacing: AppTheme.Metrics.cardSpacing) {
-                SkeletonBlock(width: 120, height: 16)
-                ForEach(0..<3, id: \.self) { _ in
-                    SkeletonBlock(height: 64, cornerRadius: AppTheme.Metrics.cardCornerRadius)
-                }
-            }
-        }
-        .skeletonAccessibility()
-    }
-}
-
-#Preview("Report") {
+#Preview("Yearly") {
     ReportSkeleton(chartTitle: "月別推移")
 }
 
 #Preview("Sold items") {
     List { ListTemplateSkeletonSections() }
-}
-
-#Preview("Form") {
-    Form { FormSkeletonSections() }
 }
