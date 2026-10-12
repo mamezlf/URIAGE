@@ -19,8 +19,16 @@ struct AllTimeReportContent: View {
     }
 
     var body: some View {
-        let report = AllTimeReport(soldItems: items, supplies: supplies)
+        // 開いた直後はスケルトンを出し、通算の集計は次のフレーム以降に行う
+        DeferredContent {
+            reportList(AllTimeReport(soldItems: items, supplies: supplies))
+        } placeholder: {
+            ReportSkeleton(chartTitle: "年別推移")
+        }
+        .contentMargins(.top, 0, for: .scrollContent)
+    }
 
+    private func reportList(_ report: AllTimeReport) -> some View {
         List {
             if report.isEmpty {
                 Section {
@@ -67,7 +75,6 @@ struct AllTimeReportContent: View {
                 }
             }
         }
-        .contentMargins(.top, 0, for: .scrollContent)
     }
 
     private func row(_ label: String, _ value: String, tint: Color) -> some View {

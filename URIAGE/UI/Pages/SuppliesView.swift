@@ -36,6 +36,7 @@ struct SuppliesView: View {
     @State private var itemsPendingDeletion: [SupplyItem] = []
     @State private var isShowingDeleteConfirmation = false
     @State private var selectedPeriod: SupplyFilterPeriod = .thisMonth
+    @State private var isContentReady = false
     @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
 
     private var currencyFormatter: AppCurrencyFormatter {
@@ -79,7 +80,9 @@ struct SuppliesView: View {
 
     var body: some View {
         List {
-            if supplies.isEmpty {
+            if isContentReady == false {
+                SuppliesSkeletonSections()
+            } else if supplies.isEmpty {
                 Section {
                     EmptyStateCard(
                         title: "まだ資材がありません",
@@ -137,6 +140,7 @@ struct SuppliesView: View {
             }
         }
         .safeAreaPadding(.top, 16)
+        .deferredReveal($isContentReady)
         .navigationTitle("資材")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

@@ -18,6 +18,7 @@ struct SoldItemListView: View {
     @State private var customMonth = Date()
     @State private var sortField: SortField = .soldDate
     @State private var sortOrder: SortOrder = .descending
+    @State private var isContentReady = false
     @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
 
     private var currencyFormatter: AppCurrencyFormatter {
@@ -35,12 +36,16 @@ struct SoldItemListView: View {
     }
 
     var body: some View {
+        // 検索・絞り込み・並び替えは 1 回の描画で 1 回だけ計算する（表示準備ができるまでは計算しない）
+        let visibleItems = isContentReady ? filteredAndSortedItems : []
+
         ListViewTemplate(
             title: "販売記録",
-            isEmpty: filteredAndSortedItems.isEmpty,
+            isEmpty: visibleItems.isEmpty,
+            isLoading: isContentReady == false,
             filterBar: {
                 FilterBar(
-                    resultCount: filteredAndSortedItems.count,
+                    resultCount: visibleItems.count,
                     monthFilter: $monthFilter,
                     customMonth: $customMonth,
                     sortField: $sortField,
@@ -76,7 +81,7 @@ struct SoldItemListView: View {
                 }
             },
             content: {
-                ForEach(filteredAndSortedItems) { item in
+                ForEach(visibleItems) { item in
                     NavigationLink {
                         SoldItemDetailView(item: item)
                     } label: {
@@ -99,6 +104,7 @@ struct SoldItemListView: View {
             }
         )
         .searchable(text: $searchText, prompt: "商品名を検索")
+        .deferredReveal($isContentReady)
 
 .animation(sortAnimation, value: sortField)
         .animation(sortAnimation, value: sortOrder)
