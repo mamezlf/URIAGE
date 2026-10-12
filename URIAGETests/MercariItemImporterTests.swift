@@ -18,6 +18,34 @@ final class MercariItemImporterTests: XCTestCase {
         XCTAssertEqual(result.url.absoluteString, "https://jp.mercari.com/item/m36144759504")
     }
 
+    func testNormalizeAcceptsOtherMercariPathsContainingItemID() throws {
+        let inputs = [
+            "https://jp.mercari.com/transaction/m36144759504",
+            "https://www.mercari.com/jp/items/m36144759504/",
+            "jp.mercari.com/item/m36144759504",
+            "https://jp.mercari.com/item/m36144759504/"
+        ]
+
+        for input in inputs {
+            let result = try MercariItemImporter.normalize(input)
+            XCTAssertEqual(result.url.absoluteString, "https://jp.mercari.com/item/m36144759504", input)
+        }
+    }
+
+    func testNormalizeExtractsURLFromSharedText() throws {
+        let result = try MercariItemImporter.normalize(
+            "千羽鶴完成品を出品しました！ https://jp.mercari.com/item/m88862671213?utm_source=ios&utm_medium=share #メルカリ"
+        )
+
+        XCTAssertEqual(result.itemID, "m88862671213")
+    }
+
+    func testNormalizeRejectsTextWithoutItemID() {
+        XCTAssertThrowsError(try MercariItemImporter.normalize("https://jp.mercari.com/mypage"))
+        XCTAssertThrowsError(try MercariItemImporter.normalize("こんにちは"))
+        XCTAssertThrowsError(try MercariItemImporter.normalize("m36144759504"))
+    }
+
     func testNormalizeRejectsUnsupportedURL() {
         XCTAssertThrowsError(try MercariItemImporter.normalize("https://example.com/item/m36144759504"))
     }

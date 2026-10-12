@@ -28,7 +28,7 @@ enum MercariItemImportError: LocalizedError {
         case .invalidURL:
             return "Mercariのリンクを入力してください。"
         case .unsupportedURL:
-            return "jp.mercari.com/item/ 形式のリンクを入力してください。"
+            return "商品のリンク（例: jp.mercari.com/item/m123…）を入力してください。"
         case .downloadFailed:
             return "商品ページを読み込めませんでした。リンクを保存して、商品名と価格を手入力してください。"
         }
@@ -53,27 +53,58 @@ enum MercariItemImporter {
         return parse(html: html, fallback: normalized)
     }
 
+    /// 入力文字列から商品IDを取り出し、正規化した商品URLを返す。
+    ///
+    /// 受け付ける入力の例:
+    /// - `https://jp.mercari.com/item/m36144759504?utm_source=ios`（共有リンク）
+    /// - `https://jp.mercari.com/transaction/m36144759504` など、パスに商品IDを含むメルカリのURL
+    /// - `jp.mercari.com/item/m36144759504`（スキームなし）
+    /// - `〇〇を出品中！ https://jp.mercari.com/item/m36144759504 #メルカリ`（URLを含む文章）
     static func normalize(_ input: String) throws -> MercariItemImportResult {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: trimmed), let host = url.host(percentEncoded: false) else {
+        guard trimmed.isEmpty == false else {
             throw MercariItemImportError.invalidURL
         }
 
-        guard host == "jp.mercari.com" || host == "www.mercari.com" else {
-            throw MercariItemImportError.unsupportedURL
+        let links = detectedLinks(in: trimmed)
+
+        if let foundID = links.compactMap({ Self.itemID(in: $0.url) }).first {
+            return try canonicalResult(for: foundID)
         }
 
-        let pathComponents = url.pathComponents
-        guard let itemIndex = pathComponents.firstIndex(of: "item"),
-              pathComponents.indices.contains(itemIndex + 1) else {
-            throw MercariItemImportError.unsupportedURL
+        // URLはあるがメルカリの商品IDが見つからない場合と、そもそも何も読み取れない場合でメッセージを分ける
+        throw links.isEmpty ? MercariItemImportError.invalidURL : MercariItemImportError.unsupportedURL
+    }
+
+    /// メルカリのURLから商品ID（`m` + 数字）を取り出す。メルカリ以外のドメインは対象外。
+    static func itemID(in url: URL) -> String? {
+        guard let host = url.host(percentEncoded: false)?.lowercased(),
+              host == "mercari.com" || host.hasSuffix(".mercari.com") else {
+            return nil
         }
 
-        let itemID = pathComponents[itemIndex + 1]
-        guard itemID.range(of: #"^m\d+$"#, options: .regularExpression) != nil else {
-            throw MercariItemImportError.unsupportedURL
+        return url.pathComponents.first { Self.isItemID($0) }
+    }
+
+    nonisolated private static func isItemID(_ text: String) -> Bool {
+        text.range(of: #"^m\d{6,}$"#, options: .regularExpression) != nil
+    }
+
+    private static func detectedLinks(in text: String) -> [(url: URL, range: NSRange)] {
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else {
+            return []
         }
 
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        return detector.matches(in: text, range: range).compactMap { match in
+            guard let url = match.url else {
+                return nil
+            }
+            return (url, match.range)
+        }
+    }
+
+    private static func canonicalResult(for itemID: String) throws -> MercariItemImportResult {
         var components = URLComponents()
         components.scheme = "https"
         components.host = "jp.mercari.com"
