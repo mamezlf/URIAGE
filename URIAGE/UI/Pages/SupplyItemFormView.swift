@@ -34,8 +34,40 @@ struct SupplyItemFormView: View {
         _notes = State(initialValue: item?.notes ?? "")
     }
 
+    @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
+
+    private var currencyFormatter: AppCurrencyFormatter {
+        AppCurrencyFormatter(currencyCode: currencyCode)
+    }
+
+    private var previewTotalCost: Decimal {
+        decimal(from: unitCost) * Decimal(max(int(from: quantity), 0))
+    }
+
     var body: some View {
-        Form {
+        FormViewTemplate(
+            title: originalItem == nil ? "資材を追加" : "資材を編集",
+            onSave: save,
+            onCancel: { dismiss() }
+        ) {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("合計金額")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    AmountText(
+                        value: previewTotalCost,
+                        formatter: currencyFormatter,
+                        role: .cost,
+                        font: .largeTitle,
+                        fontWeight: .bold
+                    )
+                    .minimumScaleFactor(0.7)
+                }
+                .padding(.vertical, 6)
+            }
+
             Section("基本情報") {
                 TextField("名称", text: $name)
 
@@ -50,27 +82,15 @@ struct SupplyItemFormView: View {
                     .lineLimit(2...4)
             }
 
-            Section("数量とコスト") {
+            Section("金額") {
                 amountField("単価", text: $unitCost)
                 integerField("数量", text: $quantity)
             }
         }
-        .navigationTitle(originalItem == nil ? "資材を追加" : "資材を編集")
         .alert("保存できません", isPresented: $isShowingValidationAlert) {
             Button("確認", role: .cancel) {}
         } message: {
             Text(validationMessage ?? "入力内容を確認してください。")
-        }
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("キャンセル", role: .cancel) {
-                    dismiss()
-                }
-            }
-
-            ToolbarItem(placement: .confirmationAction) {
-                Button("保存", action: save)
-            }
         }
     }
 
