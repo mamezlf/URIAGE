@@ -10,8 +10,10 @@ import SwiftData
 
 struct YearlyReportContent: View {
     let year: Date
+    let input: ReportInput
+    let cache: ReportCache
+    /// 利益上位の行から詳細画面へ遷移するときに使う
     let items: [SoldItem]
-    let supplies: [SupplyItem]
     let currencyCode: String
     let onOpenMonth: (Date) -> Void
 
@@ -20,10 +22,13 @@ struct YearlyReportContent: View {
     }
 
     var body: some View {
-        // ページを開いた直後はスケルトンを出し、集計は次のフレーム以降に行う
-        DeferredContent {
-            // 描画ごとに 1 回だけ集計する
-            reportList(YearlyReport(year: year, soldItems: items, supplies: supplies))
+        ReportLoader(
+            key: .year(year),
+            input: input,
+            cache: cache,
+            compute: ReportComputation.yearly(year)
+        ) { report in
+            reportList(report)
         } placeholder: {
             ReportSkeleton(chartTitle: "月別推移")
         }
@@ -63,12 +68,8 @@ struct YearlyReportContent: View {
                 }
 
                 Section("利益上位5件") {
-                    ForEach(report.topProfitItems) { item in
-                        NavigationLink {
-                            SoldItemDetailView(item: item)
-                        } label: {
-                            ReportItemRow(item: item, currencyFormatter: currencyFormatter)
-                        }
+                    ForEach(report.topProfitItems) { record in
+                        ReportItemLink(record: record, items: items, currencyFormatter: currencyFormatter)
                     }
                 }
             }

@@ -18,6 +18,7 @@ struct SoldItemListView: View {
     @State private var customMonth = Date()
     @State private var sortField: SortField = .soldDate
     @State private var sortOrder: SortOrder = .descending
+    /// タブを初めて開いたときだけ false。一覧の構築を 1 フレーム後ろにずらし、タブ切り替えを先に完了させる
     @State private var isContentReady = false
     @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
 
@@ -36,7 +37,7 @@ struct SoldItemListView: View {
     }
 
     var body: some View {
-        // 検索・絞り込み・並び替えは 1 回の描画で 1 回だけ計算する（表示準備ができるまでは計算しない）
+        // 検索・絞り込み・並び替えは 1 回の描画で 1 回だけ計算する（初回表示の準備中は計算しない）
         let visibleItems = isContentReady ? filteredAndSortedItems : []
 
         ListViewTemplate(
@@ -104,13 +105,23 @@ struct SoldItemListView: View {
             }
         )
         .searchable(text: $searchText, prompt: "商品名を検索")
-        .deferredReveal($isContentReady)
-
-.animation(sortAnimation, value: sortField)
-        .animation(sortAnimation, value: sortOrder)
+        .task {
+            // 2 回目以降のタブ切り替えでは何もしない（一覧はそのまま残っている）
+            guard isContentReady == false else { return }
+            // スケルトンを 1 フレーム描いてタブを切り替えてから、一覧を作る
+            try? await Task.sleep(for: .milliseconds(16))
+            withAnimation(.easeOut(duration: 0.2)) {
+                isContentReady = true
+            }
+        }
+        // 絞り込み（すべて / 今月 / 先月 / 指定）・並び替えの切り替えで行が動くようにする
+        .animation(listAnimation, value: monthFilter)
+        .animation(listAnimation, value: customMonth)
+        .animation(listAnimation, value: sortField)
+        .animation(listAnimation, value: sortOrder)
     }
 
-    private var sortAnimation: Animation? {
+    private var listAnimation: Animation? {
         reduceMotion ? nil : .snappy(duration: 0.35)
     }
 

@@ -36,7 +36,7 @@ struct SuppliesView: View {
     @State private var itemsPendingDeletion: [SupplyItem] = []
     @State private var isShowingDeleteConfirmation = false
     @State private var selectedPeriod: SupplyFilterPeriod = .thisMonth
-    @State private var isContentReady = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
 
     private var currencyFormatter: AppCurrencyFormatter {
@@ -80,9 +80,7 @@ struct SuppliesView: View {
 
     var body: some View {
         List {
-            if isContentReady == false {
-                SuppliesSkeletonSections()
-            } else if supplies.isEmpty {
+            if supplies.isEmpty {
                 Section {
                     EmptyStateCard(
                         title: "まだ資材がありません",
@@ -140,7 +138,8 @@ struct SuppliesView: View {
             }
         }
         .safeAreaPadding(.top, 16)
-        .deferredReveal($isContentReady)
+        // 表示期間（今月 / 3ヶ月 / 半年）の切り替えで行が動くようにする
+        .animation(reduceMotion ? nil : .snappy(duration: 0.35), value: selectedPeriod)
         .navigationTitle("資材")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -259,12 +258,14 @@ private struct SupplyFilterBar: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center, spacing: 10) {
                 Label("\(resultCount)件", systemImage: "line.3.horizontal.decrease.circle")
+                    .contentTransition(.numericText(value: Double(resultCount)))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
 
                 Spacer(minLength: 8)
 
                 Text("合計 \(totalCostText)")
+                    .contentTransition(.numericText())
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

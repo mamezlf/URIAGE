@@ -44,12 +44,8 @@ enum ProfitCalculator {
     }
 }
 
-enum SupplyCostCalculator {
-    static func registeredSupplyCost(_ supplies: [SupplyItem]) -> Decimal {
-        supplies.reduce(Decimal(0)) { $0 + $1.totalCost }
-    }
-
-    // MARK: - Interval based (shared by monthly / yearly reports)
+nonisolated enum SupplyCostCalculator {
+    // MARK: - Interval based（集計用の値型。バックグラウンドからも呼べる）
 
     /// `start <= date < end`（DateInterval.contains は end を含むため使わない）
     static func isDate(_ date: Date, in interval: DateInterval) -> Bool {
@@ -57,7 +53,7 @@ enum SupplyCostCalculator {
     }
 
     static func registeredSupplyCost(
-        supplies: [SupplyItem],
+        supplies: [SupplyRecord],
         in interval: DateInterval
     ) -> Decimal {
         supplies
@@ -66,8 +62,8 @@ enum SupplyCostCalculator {
     }
 
     static func supplyCost(
-        soldItems: [SoldItem],
-        supplies: [SupplyItem],
+        soldItems: [SoldRecord],
+        supplies: [SupplyRecord],
         in interval: DateInterval
     ) -> Decimal {
         let directPackagingCost = soldItems
@@ -78,8 +74,8 @@ enum SupplyCostCalculator {
     }
 
     static func profitAfterRegisteredSupplyCost(
-        soldItems: [SoldItem],
-        supplies: [SupplyItem],
+        soldItems: [SoldRecord],
+        supplies: [SupplyRecord],
         in interval: DateInterval
     ) -> Decimal {
         let salesProfit = soldItems
@@ -87,6 +83,46 @@ enum SupplyCostCalculator {
             .reduce(Decimal(0)) { $0 + $1.profit }
 
         return salesProfit - registeredSupplyCost(supplies: supplies, in: interval)
+    }
+}
+
+// MARK: - SwiftData モデル版（ホーム・資材画面など、メインスレッドから直接使う）
+
+@MainActor
+extension SupplyCostCalculator {
+    static func registeredSupplyCost(_ supplies: [SupplyItem]) -> Decimal {
+        supplies.reduce(Decimal(0)) { $0 + $1.totalCost }
+    }
+
+    static func registeredSupplyCost(
+        supplies: [SupplyItem],
+        in interval: DateInterval
+    ) -> Decimal {
+        registeredSupplyCost(supplies: supplies.map(SupplyRecord.init), in: interval)
+    }
+
+    static func supplyCost(
+        soldItems: [SoldItem],
+        supplies: [SupplyItem],
+        in interval: DateInterval
+    ) -> Decimal {
+        supplyCost(
+            soldItems: soldItems.map(SoldRecord.init),
+            supplies: supplies.map(SupplyRecord.init),
+            in: interval
+        )
+    }
+
+    static func profitAfterRegisteredSupplyCost(
+        soldItems: [SoldItem],
+        supplies: [SupplyItem],
+        in interval: DateInterval
+    ) -> Decimal {
+        profitAfterRegisteredSupplyCost(
+            soldItems: soldItems.map(SoldRecord.init),
+            supplies: supplies.map(SupplyRecord.init),
+            in: interval
+        )
     }
 
     // MARK: - Monthly

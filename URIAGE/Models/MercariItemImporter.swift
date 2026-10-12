@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct MercariItemImportResult: Equatable, Hashable, Identifiable {
+nonisolated struct MercariItemImportResult: Equatable, Hashable, Identifiable, Sendable {
     let itemID: String
     let url: URL
     let title: String?
@@ -18,7 +18,7 @@ struct MercariItemImportResult: Equatable, Hashable, Identifiable {
     }
 }
 
-enum MercariItemImportError: LocalizedError {
+nonisolated enum MercariItemImportError: LocalizedError {
     case invalidURL
     case unsupportedURL
     case downloadFailed
@@ -35,7 +35,9 @@ enum MercariItemImportError: LocalizedError {
     }
 }
 
-enum MercariItemImporter {
+// 通信と HTML 解析はメインスレッドの外で行う（読み込み中もスピナーや画面操作が止まらないように）
+nonisolated enum MercariItemImporter {
+    @concurrent
     static func fetch(from input: String) async throws -> MercariItemImportResult {
         let normalized = try normalize(input)
         let data: Data

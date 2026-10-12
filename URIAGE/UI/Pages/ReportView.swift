@@ -33,6 +33,8 @@ struct ReportView: View {
     // 0 は今月 / 今年、負の値は過去
     @State private var monthOffset: Int = 0
     @State private var yearOffset: Int = 0
+    /// 集計結果のキャッシュ（月・年をまたいで共有。販売記録が変わると自動で捨てる）
+    @State private var cache = ReportCache()
 
     private let calendar = Calendar.current
     private let initialMonth: Date
@@ -82,6 +84,9 @@ struct ReportView: View {
     }
 
     var body: some View {
+        // 集計用に値だけ写し取る（集計そのものは各ページがバックグラウンドで行う）
+        let input = ReportInput(items: items, supplies: supplies)
+
         VStack(spacing: 0) {
             Picker("期間", selection: $mode) {
                 ForEach(ReportPeriodMode.allCases) { mode in
@@ -98,13 +103,14 @@ struct ReportView: View {
 
             switch mode {
             case .monthly:
-                monthlyPager
+                monthlyPager(input: input)
             case .yearly:
-                yearlyPager
+                yearlyPager(input: input)
             case .all:
                 AllTimeReportContent(
+                    input: input,
+                    cache: cache,
                     items: items,
-                    supplies: supplies,
                     currencyCode: currencyCode,
                     onOpenYear: openYear
                 )
@@ -112,6 +118,16 @@ struct ReportView: View {
             }
         }
         .background(Color(uiColor: .systemGroupedBackground))
+        .onChange(of: mode) { oldMode, _ in
+            // 「月」から離れたら今月に戻しておく。次に「月」を開いたときは今月から表示する
+            // （年次レポートのグラフから特定の月を開く場合は、openMonth が離れた後に設定するので影響しない）
+            if oldMode == .monthly {
+                monthOffset = 0
+            }
+        }
+        .task(id: PrefetchID(mode: mode.rawValue, monthOffset: monthOffset, yearOffset: yearOffset, input: input)) {
+            await prefetchNeighbors(input: input)
+        }
         .navigationTitle("レポート")
         .toolbar {
             if currentOffset != 0 {
@@ -176,35 +192,71 @@ struct ReportView: View {
         .padding(.bottom, 12)
     }
 
-    private var monthlyPager: some View {
+    // 121 ページ全部を作ると重いので、表示中のページと左右 1 ページだけ中身を作る
+    private func monthlyPager(input: ReportInput) -> some View {
         TabView(selection: clampedBinding($monthOffset, to: Self.monthRange)) {
             ForEach(Self.monthRange, id: \.self) { offset in
-                MonthlyReportContent(
-                    month: month(at: offset),
-                    items: items,
-                    supplies: supplies,
-                    currencyCode: currencyCode
-                )
+                ZStack {
+                    if abs(offset - monthOffset) <= 1 {
+                        MonthlyReportContent(
+                            month: month(at: offset),
+                            input: input,
+                            cache: cache,
+                            items: items,
+                            currencyCode: currencyCode
+                        )
+                    }
+                }
                 .tag(offset)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
     }
 
-    private var yearlyPager: some View {
+    private func yearlyPager(input: ReportInput) -> some View {
         TabView(selection: clampedBinding($yearOffset, to: Self.yearRange)) {
             ForEach(Self.yearRange, id: \.self) { offset in
-                YearlyReportContent(
-                    year: year(at: offset),
-                    items: items,
-                    supplies: supplies,
-                    currencyCode: currencyCode,
-                    onOpenMonth: openMonth
-                )
+                ZStack {
+                    if abs(offset - yearOffset) <= 1 {
+                        YearlyReportContent(
+                            year: year(at: offset),
+                            input: input,
+                            cache: cache,
+                            items: items,
+                            currencyCode: currencyCode,
+                            onOpenMonth: openMonth
+                        )
+                    }
+                }
                 .tag(offset)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
+    }
+
+    private nonisolated struct PrefetchID: Equatable {
+        let mode: String
+        let monthOffset: Int
+        let yearOffset: Int
+        let input: ReportInput
+    }
+
+    /// 左右のページを先に集計しておき、めくったときに待たずに表示できるようにする
+    private func prefetchNeighbors(input: ReportInput) async {
+        switch mode {
+        case .monthly:
+            for offset in [monthOffset + 1, monthOffset - 1] where Self.monthRange.contains(offset) {
+                let target = month(at: offset)
+                await cache.prefetch(.month(target), input: input, compute: ReportComputation.monthly(target))
+            }
+        case .yearly:
+            for offset in [yearOffset + 1, yearOffset - 1] where Self.yearRange.contains(offset) {
+                let target = year(at: offset)
+                await cache.prefetch(.year(target), input: input, compute: ReportComputation.yearly(target))
+            }
+        case .all:
+            break
+        }
     }
 
     private func step(_ delta: Int) {

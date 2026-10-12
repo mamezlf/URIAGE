@@ -9,8 +9,10 @@ import SwiftUI
 import SwiftData
 
 struct AllTimeReportContent: View {
+    let input: ReportInput
+    let cache: ReportCache
+    /// 利益上位の行から詳細画面へ遷移するときに使う
     let items: [SoldItem]
-    let supplies: [SupplyItem]
     let currencyCode: String
     let onOpenYear: (Date) -> Void
 
@@ -19,9 +21,13 @@ struct AllTimeReportContent: View {
     }
 
     var body: some View {
-        // 開いた直後はスケルトンを出し、通算の集計は次のフレーム以降に行う
-        DeferredContent {
-            reportList(AllTimeReport(soldItems: items, supplies: supplies))
+        ReportLoader(
+            key: .allTime,
+            input: input,
+            cache: cache,
+            compute: ReportComputation.allTime
+        ) { report in
+            reportList(report)
         } placeholder: {
             ReportSkeleton(chartTitle: "年別推移")
         }
@@ -65,12 +71,8 @@ struct AllTimeReportContent: View {
                 }
 
                 Section("利益上位5件") {
-                    ForEach(report.topProfitItems) { item in
-                        NavigationLink {
-                            SoldItemDetailView(item: item)
-                        } label: {
-                            ReportItemRow(item: item, currencyFormatter: currencyFormatter)
-                        }
+                    ForEach(report.topProfitItems) { record in
+                        ReportItemLink(record: record, items: items, currencyFormatter: currencyFormatter)
                     }
                 }
             }

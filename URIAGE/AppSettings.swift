@@ -24,26 +24,44 @@ enum AppDefaults {
 struct AppCurrencyFormatter {
     var currencyCode: String
 
-    func string(from value: Decimal) -> String {
+    /// NumberFormatter の生成は重いので、通貨ごとに 1 つだけ作って使い回す
+    /// （一覧の行ごとに作っていたため、タブ切り替え時の描画が遅くなっていた）
+    private static var formatters: [String: NumberFormatter] = [:]
+
+    private var formatter: NumberFormatter {
+        if let cached = Self.formatters[currencyCode] {
+            return cached
+        }
+
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currencyCode
         formatter.maximumFractionDigits = 0
-        return formatter.string(from: value as NSDecimalNumber) ?? "\(currencyCode) 0"
+        Self.formatters[currencyCode] = formatter
+        return formatter
+    }
+
+    func string(from value: Decimal) -> String {
+        formatter.string(from: value as NSDecimalNumber) ?? "\(currencyCode) 0"
     }
 }
 
 enum AppDateFormatter {
+    private static let locale = Locale(identifier: "ja_JP")
+    private static let dateStyle = Date.FormatStyle.dateTime.year().month().day().locale(locale)
+    private static let monthStyle = Date.FormatStyle.dateTime.year().month(.wide).locale(locale)
+    private static let yearStyle = Date.FormatStyle.dateTime.year().locale(locale)
+
     static func dateString(from date: Date) -> String {
-        date.formatted(.dateTime.year().month().day().locale(Locale(identifier: "ja_JP")))
+        date.formatted(dateStyle)
     }
 
     static func monthString(from date: Date) -> String {
-        date.formatted(.dateTime.year().month(.wide).locale(Locale(identifier: "ja_JP")))
+        date.formatted(monthStyle)
     }
 
     static func yearString(from date: Date) -> String {
-        date.formatted(.dateTime.year().locale(Locale(identifier: "ja_JP")))
+        date.formatted(yearStyle)
     }
 }
 

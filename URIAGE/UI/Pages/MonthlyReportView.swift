@@ -10,72 +10,24 @@ import SwiftData
 
 struct MonthlyReportContent: View {
     let month: Date
+    let input: ReportInput
+    let cache: ReportCache
+    /// 利益上位の行から詳細画面へ遷移するときに使う
     let items: [SoldItem]
-    let supplies: [SupplyItem]
     let currencyCode: String
 
-    private let calendar = Calendar.current
-    
     private var currencyFormatter: AppCurrencyFormatter {
         AppCurrencyFormatter(currencyCode: currencyCode)
     }
 
-    private var monthlyItems: [SoldItem] {
-        items.filter { item in
-            guard let interval = calendar.dateInterval(of: .month, for: month) else {
-                return false
-            }
-            return item.soldAt >= interval.start && item.soldAt < interval.end
-        }
-    }
-
-    private var topProfitItems: [SoldItem] {
-        Array(monthlyItems.sorted { $0.profit > $1.profit }.prefix(5))
-    }
-
-    private var monthlySales: Decimal {
-        monthlyItems.reduce(0) { $0 + $1.salePrice }
-    }
-
-    private var monthlyNetIncome: Decimal {
-        monthlyItems.reduce(0) { $0 + $1.netIncome }
-    }
-
-    private var monthlyTotalCost: Decimal {
-        monthlyItems.reduce(0) { $0 + $1.totalCost }
-    }
-
-    private var monthlyProfit: Decimal {
-        SupplyCostCalculator.monthlyProfitAfterRegisteredSupplyCost(
-            soldItems: items,
-            supplies: supplies,
-            in: month,
-            calendar: calendar
-        )
-    }
-
-    private var monthlySupplyCost: Decimal {
-        SupplyCostCalculator.monthlySupplyCost(soldItems: items, supplies: supplies, in: month, calendar: calendar)
-    }
-
-    private var monthlySoldCount: Int {
-        monthlyItems.count
-    }
-
-    private var averageProfit: Decimal? {
-        guard monthlyItems.isEmpty == false else { return nil }
-        return monthlyProfit / Decimal(max(monthlySoldCount, 1))
-    }
-
-    private var averageProfitRate: Decimal? {
-        guard monthlySales != 0 else { return nil }
-        return monthlyProfit / monthlySales
-    }
-
     var body: some View {
-        // ページを開いた直後はスケルトンを出し、集計は次のフレーム以降に行う
-        DeferredContent {
-            reportList
+        ReportLoader(
+            key: .month(month),
+            input: input,
+            cache: cache,
+            compute: ReportComputation.monthly(month)
+        ) { report in
+            reportList(report)
         } placeholder: {
             ReportSkeleton()
         }
@@ -83,9 +35,9 @@ struct MonthlyReportContent: View {
         .safeAreaPadding(.top, -10)
     }
 
-    private var reportList: some View {
+    private func reportList(_ report: MonthlyReport) -> some View {
         List {
-            if monthlyItems.isEmpty {
+            if report.isEmpty {
                 Section {
                     EmptyStateCard(
                         title: "この月の販売記録はありません",
@@ -102,20 +54,15 @@ struct MonthlyReportContent: View {
                 .listRowBackground(Color.clear)
             } else {
                 Section("サマリー") {
-                    reportRow("販売額", currencyFormatter.string(from: monthlySales), valueTint: AppTheme.Colors.sales)
-                    reportRow("利益", currencyFormatter.string(from: monthlyProfit), valueTint: AppTheme.profitColor(for: monthlyProfit))
-                    reportRow("販売件数", "\(monthlySoldCount)", valueTint: AppTheme.Colors.secondary)
-                    reportRow("資材費用", currencyFormatter.string(from: monthlySupplyCost), valueTint: AppTheme.Colors.cost)
+                    reportRow("販売額", currencyFormatter.string(from: report.sales), valueTint: AppTheme.Colors.sales)
+                    reportRow("利益", currencyFormatter.string(from: report.profit), valueTint: AppTheme.profitColor(for: report.profit))
+                    reportRow("販売件数", "\(report.soldCount)", valueTint: AppTheme.Colors.secondary)
+                    reportRow("資材費用", currencyFormatter.string(from: report.supplyCost), valueTint: AppTheme.Colors.cost)
                 }
 
-
                 Section("利益上位5件") {
-                    ForEach(topProfitItems) { item in
-                        NavigationLink {
-                            SoldItemDetailView(item: item)
-                        } label: {
-                            ReportItemRow(item: item, currencyFormatter: currencyFormatter)
-                        }
+                    ForEach(report.topProfitItems) { record in
+                        ReportItemLink(record: record, items: items, currencyFormatter: currencyFormatter)
                     }
                 }
             }
