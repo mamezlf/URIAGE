@@ -128,4 +128,23 @@ struct YearlyReport {
         guard let previous, previous > 0 else { return nil }
         return (current - previous) / previous
     }
+
+    var trendPoints: [ReportTrendPoint] {
+        months.map { month in
+            ReportTrendPoint(
+                label: month.label,
+                axisLabel: "\(month.index)",
+                start: month.start,
+                isFuture: month.isFuture,
+                sales: month.sales,
+                profit: month.profit,
+                soldCount: month.soldCount
+            )
+        }
+    }
+
+    var bestTrendPoint: ReportTrendPoint? {
+        guard let bestMonth else { return nil }
+        return trendPoints.first { $0.label == bestMonth.label }
+    }
 }

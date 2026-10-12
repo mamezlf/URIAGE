@@ -11,6 +11,7 @@ import SwiftData
 enum ReportPeriodMode: String, CaseIterable, Identifiable {
     case monthly
     case yearly
+    case all
 
     var id: Self { self }
 
@@ -18,6 +19,7 @@ enum ReportPeriodMode: String, CaseIterable, Identifiable {
         switch self {
         case .monthly: "月"
         case .yearly: "年"
+        case .all: "すべて"
         }
     }
 }
@@ -56,13 +58,18 @@ struct ReportView: View {
     }
 
     private var currentOffset: Int {
-        mode == .monthly ? monthOffset : yearOffset
+        switch mode {
+        case .monthly: monthOffset
+        case .yearly: yearOffset
+        case .all: 0
+        }
     }
 
     private var periodTitle: String {
         switch mode {
         case .monthly: AppDateFormatter.monthString(from: month(at: monthOffset))
         case .yearly: AppDateFormatter.yearString(from: year(at: yearOffset))
+        case .all: ""
         }
     }
 
@@ -70,6 +77,7 @@ struct ReportView: View {
         switch mode {
         case .monthly: monthOffset > Self.monthRange.lowerBound
         case .yearly: yearOffset > Self.yearRange.lowerBound
+        case .all: false
         }
     }
 
@@ -84,13 +92,23 @@ struct ReportView: View {
             .padding(.horizontal, AppTheme.Metrics.screenPadding)
             .padding(.top, 8)
 
-            periodHeader
+            if mode != .all {
+                periodHeader
+            }
 
             switch mode {
             case .monthly:
                 monthlyPager
             case .yearly:
                 yearlyPager
+            case .all:
+                AllTimeReportContent(
+                    items: items,
+                    supplies: supplies,
+                    currencyCode: currencyCode,
+                    onOpenYear: openYear
+                )
+                .padding(.top, 12)
             }
         }
         .background(Color(uiColor: .systemGroupedBackground))
@@ -103,6 +121,7 @@ struct ReportView: View {
                             switch mode {
                             case .monthly: monthOffset = 0
                             case .yearly: yearOffset = 0
+                            case .all: break
                             }
                         }
                     }
@@ -195,6 +214,8 @@ struct ReportView: View {
                 monthOffset = (monthOffset + delta).clamped(to: Self.monthRange)
             case .yearly:
                 yearOffset = (yearOffset + delta).clamped(to: Self.yearRange)
+            case .all:
+                break
             }
         }
     }
@@ -205,6 +226,15 @@ struct ReportView: View {
         monthOffset = offset.clamped(to: Self.monthRange)
         withAnimation {
             mode = .monthly
+        }
+    }
+
+    /// 「すべて」の年別推移から、その年の年次レポートへ移動する
+    private func openYear(_ yearStart: Date) {
+        let offset = calendar.dateComponents([.year], from: initialYear, to: yearStart).year ?? 0
+        yearOffset = offset.clamped(to: Self.yearRange)
+        withAnimation {
+            mode = .yearly
         }
     }
 
