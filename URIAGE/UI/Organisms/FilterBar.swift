@@ -111,17 +111,19 @@ struct FilterBar: View {
     @Binding var sortField: SortField
     @Binding var sortOrder: SortOrder
 
+    private let iconColumnWidth: CGFloat = 22
+    private let controlHeight: CGFloat = 32
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 10) {
-                Label("\(resultCount)件", systemImage: "line.3.horizontal.decrease.circle")
-                    .font(.subheadline.weight(.semibold))
+        VStack(alignment: .leading, spacing: 12) {
+            row(systemImage: "line.3.horizontal.decrease.circle", iconColor: .primary) {
+                Text("\(resultCount)件")
+                    .font(.headline)
+                    .monospacedDigit()
                     .foregroundStyle(.primary)
-
-                Spacer(minLength: 8)
-
+            } trailing: {
                 Text(activeFilterSummary)
-                    .font(.caption.weight(.medium))
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
@@ -135,58 +137,94 @@ struct FilterBar: View {
             .pickerStyle(.segmented)
 
             if monthFilter == .custom {
-                HStack(spacing: 10) {
-                    Label("対象月", systemImage: "calendar")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-
-                    Spacer(minLength: 8)
-
+                row(systemImage: "calendar") {
+                    rowLabel("対象月")
+                } trailing: {
                     DatePicker("対象月", selection: $customMonth, displayedComponents: .date)
                         .labelsHidden()
                         .datePickerStyle(.compact)
                 }
-                .padding(10)
-                .background(AppTheme.Colors.pageBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .frame(minHeight: controlHeight)
             }
 
-            HStack(spacing: 10) {
-                Label("並び替え", systemImage: "arrow.up.arrow.down")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+            Divider()
+                .overlay(AppTheme.Colors.separator)
 
-                Spacer(minLength: 8)
-
-                Menu {
-                    Picker("並び替え", selection: $sortField) {
-                        ForEach(SortField.allCases) { field in
-                            Text(field.title).tag(field)
+            row(systemImage: "arrow.up.arrow.down") {
+                rowLabel("並び替え")
+            } trailing: {
+                HStack(spacing: 8) {
+                    Menu {
+                        Picker("並び替え", selection: $sortField) {
+                            ForEach(SortField.allCases) { field in
+                                Text(field.title).tag(field)
+                            }
                         }
+                    } label: {
+                        chip(title: sortField.title, systemImage: "chevron.up.chevron.down")
                     }
-                } label: {
-                    Text(sortField.title)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                }
 
-                Button {
-                    sortOrder = sortOrder.toggled
-                } label: {
-                    Label(sortOrder.title, systemImage: sortOrder.systemImage)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                        .labelStyle(.titleAndIcon)
+                    Button {
+                        sortOrder = sortOrder.toggled
+                    } label: {
+                        chip(
+                            title: sortOrder.title,
+                            systemImage: "arrow.up",
+                            iconRotation: sortOrder == .ascending ? .zero : .degrees(180)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("並び順 \(sortOrder.title)")
                 }
-                .buttonStyle(.bordered)
-                .tint(AppTheme.Colors.secondary)
-                .accessibilityLabel(sortOrder.title)
             }
-            .padding(10)
-            .background(AppTheme.Colors.pageBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .padding(.vertical, 4)
+    }
+
+    private func row<Leading: View, Trailing: View>(
+        systemImage: String,
+        iconColor: Color = .secondary,
+        @ViewBuilder leading: () -> Leading,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(iconColor)
+                .frame(width: iconColumnWidth, alignment: .leading)
+
+            leading()
+
+            Spacer(minLength: 8)
+
+            trailing()
+        }
+    }
+
+    private func rowLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+    }
+
+    private func chip(title: String, systemImage: String, iconRotation: Angle = .zero) -> some View {
+        HStack(spacing: 4) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .contentTransition(.interpolate)
+            Image(systemName: systemImage)
+                .font(.caption.weight(.bold))
+                .rotationEffect(iconRotation)
+        }
+        .foregroundStyle(AppTheme.Colors.primary)
+        .padding(.horizontal, 12)
+        .frame(height: controlHeight)
+        .background(
+            AppTheme.Colors.primary.opacity(0.12),
+            in: RoundedRectangle(cornerRadius: AppTheme.Metrics.controlCornerRadius, style: .continuous)
+        )
+        .contentShape(Rectangle())
     }
 
     private var activeFilterSummary: String {
