@@ -8,97 +8,7 @@
 import SwiftUI
 import SwiftData
 
-struct MonthlyReportView: View {
-    @Query(sort: \SoldItem.soldAt, order: .reverse) private var items: [SoldItem]
-    @Query(sort: \SupplyItem.purchaseDate, order: .reverse) private var supplies: [SupplyItem]
-
-    // 0 is current month, negative is past, positive is future
-    @State private var monthOffset: Int = 0
-    @AppStorage(AppSettingsKey.currencyCode) private var currencyCode = AppDefaults.currencyCode
-
-    private let calendar = Calendar.current
-    private let initialMonth: Date
-
-    init() {
-        let now = Date()
-        self.initialMonth = Calendar.current.dateInterval(of: .month, for: now)?.start ?? now
-    }
-
-    private var selectedMonth: Date {
-        calendar.date(byAdding: .month, value: monthOffset, to: initialMonth) ?? initialMonth
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Header (Non-sliding, matching the old List row look)
-            List {
-                Section {
-                    HStack {
-                        Button {
-                            withAnimation { monthOffset -= 1 }
-                        } label: {
-                            Image(systemName: "chevron.left")
-                        }
-
-                        Spacer()
-
-                        Text(AppDateFormatter.monthString(from: selectedMonth))
-                            .font(.headline)
-
-                        Spacer()
-
-                        Button {
-                            withAnimation { monthOffset += 1 }
-                        } label: {
-                            Image(systemName: "chevron.right")
-                        }
-                        .opacity(monthOffset >= 0 ? 0 : 1.0)
-                        .disabled(monthOffset >= 0)
-                    }
-                    .buttonStyle(.borderless)
-                }
-            }
-            .frame(height: 80) // Reduced from 100
-            .scrollDisabled(true)
-            .environment(\.defaultMinListHeaderHeight, 0)
-            .padding(.bottom, -15) // Pull the content up
-
-            TabView(selection: Binding(
-                get: { monthOffset },
-                set: { newValue in
-                    if newValue <= 0 {
-                        monthOffset = newValue
-                    }
-                }
-            )) {
-                // Restricted range: past 10 years up to the current month
-                ForEach(-120...0, id: \.self) { offset in
-                    MonthlyReportContent(
-                        month: calendar.date(byAdding: .month, value: offset, to: initialMonth) ?? initialMonth,
-                        items: items,
-                        supplies: supplies,
-                        currencyCode: currencyCode
-                    )
-                    .tag(offset)
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .background(Color(uiColor: .systemGroupedBackground))
-        }
-        .navigationTitle("月次レポート")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    SoldItemFormView()
-                } label: {
-                    Label("追加", systemImage: "plus")
-                }
-            }
-        }
-    }
-}
-
-private struct MonthlyReportContent: View {
+struct MonthlyReportContent: View {
     let month: Date
     let items: [SoldItem]
     let supplies: [SupplyItem]
@@ -218,7 +128,7 @@ private struct MonthlyReportContent: View {
 
 #Preview {
     NavigationStack {
-        MonthlyReportView()
+        ReportView()
     }
     .modelContainer(for: [SoldItem.self, SupplyItem.self], inMemory: true)
 }

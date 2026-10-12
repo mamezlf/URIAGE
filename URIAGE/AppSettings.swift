@@ -41,6 +41,10 @@ enum AppDateFormatter {
     static func monthString(from date: Date) -> String {
         date.formatted(.dateTime.year().month(.wide).locale(Locale(identifier: "ja_JP")))
     }
+
+    static func yearString(from date: Date) -> String {
+        date.formatted(.dateTime.year().locale(Locale(identifier: "ja_JP")))
+    }
 }
 
 struct AppPercentFormatter {
