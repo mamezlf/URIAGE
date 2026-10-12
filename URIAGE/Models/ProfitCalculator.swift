@@ -49,6 +49,48 @@ enum SupplyCostCalculator {
         supplies.reduce(Decimal(0)) { $0 + $1.totalCost }
     }
 
+    // MARK: - Interval based (shared by monthly / yearly reports)
+
+    /// `start <= date < end`（DateInterval.contains は end を含むため使わない）
+    static func isDate(_ date: Date, in interval: DateInterval) -> Bool {
+        date >= interval.start && date < interval.end
+    }
+
+    static func registeredSupplyCost(
+        supplies: [SupplyItem],
+        in interval: DateInterval
+    ) -> Decimal {
+        supplies
+            .filter { isDate($0.purchaseDate, in: interval) }
+            .reduce(Decimal(0)) { $0 + $1.totalCost }
+    }
+
+    static func supplyCost(
+        soldItems: [SoldItem],
+        supplies: [SupplyItem],
+        in interval: DateInterval
+    ) -> Decimal {
+        let directPackagingCost = soldItems
+            .filter { isDate($0.soldAt, in: interval) }
+            .reduce(Decimal(0)) { $0 + $1.directPackagingCost }
+
+        return registeredSupplyCost(supplies: supplies, in: interval) + directPackagingCost
+    }
+
+    static func profitAfterRegisteredSupplyCost(
+        soldItems: [SoldItem],
+        supplies: [SupplyItem],
+        in interval: DateInterval
+    ) -> Decimal {
+        let salesProfit = soldItems
+            .filter { isDate($0.soldAt, in: interval) }
+            .reduce(Decimal(0)) { $0 + $1.profit }
+
+        return salesProfit - registeredSupplyCost(supplies: supplies, in: interval)
+    }
+
+    // MARK: - Monthly
+
     static func monthlyRegisteredSupplyCost(
         supplies: [SupplyItem],
         in month: Date,
@@ -58,9 +100,7 @@ enum SupplyCostCalculator {
             return 0
         }
 
-        return supplies
-            .filter { $0.purchaseDate >= interval.start && $0.purchaseDate < interval.end }
-            .reduce(Decimal(0)) { $0 + $1.totalCost }
+        return registeredSupplyCost(supplies: supplies, in: interval)
     }
 
     static func monthlySupplyCost(
@@ -73,17 +113,7 @@ enum SupplyCostCalculator {
             return 0
         }
 
-        let supplyPurchaseCost = monthlyRegisteredSupplyCost(
-            supplies: supplies,
-            in: month,
-            calendar: calendar
-        )
-
-        let directPackagingCost = soldItems
-            .filter { $0.soldAt >= interval.start && $0.soldAt < interval.end }
-            .reduce(Decimal(0)) { $0 + $1.directPackagingCost }
-
-        return supplyPurchaseCost + directPackagingCost
+        return supplyCost(soldItems: soldItems, supplies: supplies, in: interval)
     }
 
     static func monthlyProfitAfterRegisteredSupplyCost(
@@ -96,16 +126,6 @@ enum SupplyCostCalculator {
             return 0
         }
 
-        let salesProfit = soldItems
-            .filter { $0.soldAt >= interval.start && $0.soldAt < interval.end }
-            .reduce(Decimal(0)) { $0 + $1.profit }
-
-        let registeredSupplyCost = monthlyRegisteredSupplyCost(
-            supplies: supplies,
-            in: month,
-            calendar: calendar
-        )
-
-        return salesProfit - registeredSupplyCost
+        return profitAfterRegisteredSupplyCost(soldItems: soldItems, supplies: supplies, in: interval)
     }
 }

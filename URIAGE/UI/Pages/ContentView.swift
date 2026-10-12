@@ -76,7 +76,7 @@ struct ContentView: View {
             .tag(AppTab.records)
 
             NavigationStack(path: $reportsPath) {
-                MonthlyReportView()
+                ReportView()
             }
             .environment(\.moveToHomeAfterRecordSave, moveToHome)
             .tabItem {
