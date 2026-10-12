@@ -241,8 +241,15 @@ struct ReportView: View {
         let input: ReportInput
     }
 
-    /// 左右のページを先に集計しておき、めくったときに待たずに表示できるようにする
+    /// 左右のページと、他のモード（月 / 年 / すべて）の表示予定ページを先に集計しておき、
+    /// めくったり切り替えたりしたときに待たずに表示できるようにする
     private func prefetchNeighbors(input: ReportInput) async {
+        let currentMonth = month(at: monthOffset)
+        let currentYear = year(at: yearOffset)
+        await cache.prefetch(.month(currentMonth), input: input, compute: ReportComputation.monthly(currentMonth))
+        await cache.prefetch(.year(currentYear), input: input, compute: ReportComputation.yearly(currentYear))
+        await cache.prefetch(.allTime, input: input, compute: ReportComputation.allTime)
+
         switch mode {
         case .monthly:
             for offset in [monthOffset + 1, monthOffset - 1] where Self.monthRange.contains(offset) {

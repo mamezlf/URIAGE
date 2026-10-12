@@ -33,6 +33,10 @@ nonisolated struct ReportInput: Sendable, Equatable {
         self.soldItems = soldItems
         self.supplies = supplies
     }
+
+    var isCheapToAggregate: Bool {
+        soldItems.count + supplies.count <= 3_000
+    }
 }
 
 extension SoldRecord {

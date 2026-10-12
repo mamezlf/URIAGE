@@ -5,8 +5,6 @@
 //  レポートの集計をバックグラウンドで行い、終わったら描画するコンテナ。
 //
 //  - 集計済み（キャッシュあり）ならその場で描画する。スケルトンは出さない
-//  - 未集計なら裏で集計し、`skeletonDelay` を過ぎても終わらないときだけスケルトンを出す
-//  - 販売記録が編集されて再集計する間は、前の結果を表示したままにする
 //
 
 import SwiftUI
@@ -69,8 +67,10 @@ struct ReportLoader<Report: Sendable, Content: View, Placeholder: View>: View {
     }
 
     var body: some View {
-        // 最新のキャッシュ → 前回の結果（再集計中）→ なし の順で使う
-        let report: Report? = cache.report(for: key, input: input) ?? loaded
+        // 最新のキャッシュ → その場で集計（軽い場合）→ 前回の結果（再集計中）→ なし の順で使う
+        let report: Report? = cache.report(for: key, input: input)
+            ?? computeInlineIfCheap()
+            ?? loaded
 
         ZStack(alignment: .top) {
             if let report {
@@ -86,6 +86,13 @@ struct ReportLoader<Report: Sendable, Content: View, Placeholder: View>: View {
         .task(id: LoadID(key: key, input: input)) {
             await load()
         }
+    }
+
+    private func computeInlineIfCheap() -> Report? {
+        guard input.isCheapToAggregate else { return nil }
+        let report = compute(input)
+        cache.store(report, for: key, input: input)
+        return report
     }
 
     private func load() async {
