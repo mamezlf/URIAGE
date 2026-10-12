@@ -10,8 +10,8 @@ import SwiftData
 
 enum SupplyFilterPeriod: String, CaseIterable, Identifiable {
     case thisMonth = "今月"
-    case threeMonths = "過去3ヶ月"
-    case sixMonths = "過去半年"
+    case threeMonths = "3ヶ月"
+    case sixMonths = "半年"
     
     var id: String { self.rawValue }
     
@@ -73,6 +73,10 @@ struct SuppliesView: View {
         return supplies.filter { $0.purchaseDate >= cutoffDate }
     }
 
+    private var filteredTotalCost: Decimal {
+        filteredSupplies.reduce(0) { $0 + $1.totalCost }
+    }
+
     var body: some View {
         List {
             if supplies.isEmpty {
@@ -83,7 +87,7 @@ struct SuppliesView: View {
                         systemImage: "archivebox"
                     ) {
                         NavigationLink(value: SupplyRoute.add) {
-                            Label("資材を追加", systemImage: "plus")
+                            Label("最初の資材を追加", systemImage: "plus")
                         }
                     }
                 }
@@ -99,10 +103,29 @@ struct SuppliesView: View {
                 }
 
                 Section {
-                    if filteredSupplies.isEmpty {
-                        Text("今月に購入した資材はありません")
-                            .foregroundStyle(.secondary)
-                    } else {
+                    SupplyFilterBar(
+                        resultCount: filteredSupplies.count,
+                        totalCostText: currencyFormatter.string(from: filteredTotalCost),
+                        selectedPeriod: $selectedPeriod
+                    )
+                }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+
+                if filteredSupplies.isEmpty {
+                    Section {
+                        EmptyStateCard(
+                            title: "\(selectedPeriod.rawValue)の資材はありません",
+                            message: "表示期間を変更するか、新しい資材を追加してください。",
+                            systemImage: "magnifyingglass"
+                        ) {
+                            NavigationLink(value: SupplyRoute.add) {
+                                Label("資材を追加", systemImage: "plus")
+                            }
+                        }
+                    }
+                    .listRowBackground(Color.clear)
+                } else {
+                    Section {
                         ForEach(filteredSupplies) { item in
                             NavigationLink(value: SupplyRoute.edit(item.id)) {
                                 SupplyItemRow(item: item, currencyFormatter: currencyFormatter)
@@ -110,28 +133,15 @@ struct SuppliesView: View {
                         }
                         .onDelete(perform: deleteFiltered)
                     }
-                } header: {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("最近購入した資材")
-
-                        Picker("表示期間", selection: $selectedPeriod) {
-                            ForEach(SupplyFilterPeriod.allCases) { period in
-                                Text(period.rawValue).tag(period)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .textCase(nil)
-                    }
-                    .padding(.bottom, 4)
                 }
             }
         }
         .safeAreaPadding(.top, 16)
-        .navigationTitle("資材（梱包材など）")
+        .navigationTitle("資材")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink(value: SupplyRoute.add) {
-                    Label("資材を追加", systemImage: "plus")
+                    Label("追加", systemImage: "plus")
                 }
             }
         }
@@ -169,7 +179,7 @@ private struct SupplyItemRow: View {
     let currencyFormatter: AppCurrencyFormatter
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text(item.name)
                     .font(.headline)
@@ -177,26 +187,27 @@ private struct SupplyItemRow: View {
 
                 Spacer(minLength: 12)
 
-                Text(currencyFormatter.string(from: item.totalCost))
-                    .font(.subheadline.bold())
-                    .foregroundStyle(AppTheme.Colors.cost)
-                    .lineLimit(1)
+                AmountText(
+                    value: item.totalCost,
+                    formatter: currencyFormatter,
+                    role: .cost,
+                    font: .subheadline,
+                    fontWeight: .bold
+                )
             }
 
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(item.displayType)
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text("\(AppDateFormatter.dateString(from: item.purchaseDate)) · \(item.displayType)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
 
-                Text(AppDateFormatter.dateString(from: item.purchaseDate))
-                    .font(.caption)
+                Spacer(minLength: 12)
+
+                Text("\(currencyFormatter.string(from: item.unitCost)) × \(item.quantity)個")
+                    .font(.caption.bold())
                     .foregroundStyle(.secondary)
-
-                Spacer(minLength: 10)
-
-                Text("単価 \(currencyFormatter.string(from: item.unitCost)) × \(item.quantity)個")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
         .padding(.vertical, 6)
@@ -210,38 +221,60 @@ private struct SupplyCostSummaryRow: View {
     let currencyFormatter: AppCurrencyFormatter
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("今月資材にかかったお金")
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("今月の資材費用")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-                Spacer(minLength: 12)
-
-                Text(currencyFormatter.string(from: currentMonthCost))
-                    .font(.title3.bold())
-                    .foregroundStyle(AppTheme.Colors.cost)
+                AmountText(
+                    value: currentMonthCost,
+                    formatter: currencyFormatter,
+                    role: .cost,
+                    font: .largeTitle,
+                    fontWeight: .bold
+                )
+                .minimumScaleFactor(0.7)
             }
 
-            HStack(spacing: 12) {
-                summaryPill("先月", currencyFormatter.string(from: lastMonthCost), systemImage: "calendar")
-                summaryPill("今月登録", "\(currentMonthCount)件", systemImage: "shippingbox")
+            HStack(spacing: 8) {
+                SummaryMetric(title: "先月", value: currencyFormatter.string(from: lastMonthCost))
+                SummaryMetric(title: "今月登録", value: "\(currentMonthCount)件")
             }
         }
         .padding(.vertical, 6)
     }
+}
 
-    private func summaryPill(_ title: String, _ value: String, systemImage: String) -> some View {
-        Label {
-            Text("\(title) \(value)")
-        } icon: {
-            Image(systemName: systemImage)
+private struct SupplyFilterBar: View {
+    let resultCount: Int
+    let totalCostText: String
+    @Binding var selectedPeriod: SupplyFilterPeriod
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 10) {
+                Label("\(resultCount)件", systemImage: "line.3.horizontal.decrease.circle")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                Spacer(minLength: 8)
+
+                Text("合計 \(totalCostText)")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+
+            Picker("表示期間", selection: $selectedPeriod) {
+                ForEach(SupplyFilterPeriod.allCases) { period in
+                    Text(period.rawValue).tag(period)
+                }
+            }
+            .pickerStyle(.segmented)
         }
-        .font(.caption.bold())
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(AppTheme.Colors.cardBackground)
-        .clipShape(Capsule())
+        .padding(.vertical, 4)
     }
 }
 

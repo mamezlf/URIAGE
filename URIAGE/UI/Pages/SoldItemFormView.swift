@@ -246,7 +246,9 @@ struct SoldItemFormView: View {
         }
 
         hasCompletedSave = true
-        let trimmedSourceURL = trimmedOptional(sourceURL)
+        // 文章付きで入力された場合も、正規化した商品URLとして保存する
+        let trimmedSourceURL = (try? MercariItemImporter.normalize(sourceURL))?.url.absoluteString
+            ?? trimmedOptional(sourceURL)
 
         if let originalItem {
             originalItem.title = title.trimmingCharacters(in: .whitespacesAndNewlines)

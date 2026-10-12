@@ -10,6 +10,7 @@ import SwiftData
 
 struct SoldItemListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \SoldItem.soldAt, order: .reverse) private var items: [SoldItem]
 
     @State private var searchText = ""
@@ -98,6 +99,13 @@ struct SoldItemListView: View {
             }
         )
         .searchable(text: $searchText, prompt: "商品名を検索")
+
+.animation(sortAnimation, value: sortField)
+        .animation(sortAnimation, value: sortOrder)
+    }
+
+    private var sortAnimation: Animation? {
+        reduceMotion ? nil : .snappy(duration: 0.35)
     }
 
     private func filterBySearch(_ source: [SoldItem]) -> [SoldItem] {
