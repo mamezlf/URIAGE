@@ -76,7 +76,7 @@ struct ContentView: View {
             .tag(AppTab.records)
 
             NavigationStack(path: $reportsPath) {
-                ReportView()
+                ReportView(isTabActive: selectedTab == .reports)
             }
             .environment(\.moveToHomeAfterRecordSave, moveToHome)
             .tabItem {

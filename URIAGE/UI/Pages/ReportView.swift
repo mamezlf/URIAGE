@@ -36,6 +36,9 @@ struct ReportView: View {
     /// 集計結果のキャッシュ（月・年をまたいで共有。販売記録が変わると自動で捨てる）
     @State private var cache = ReportCache()
 
+    /// レポートタブが選択中か。タブを離れたら今月・今年に戻すために使う
+    private let isTabActive: Bool
+
     private let calendar = Calendar.current
     private let initialMonth: Date
     private let initialYear: Date
@@ -44,7 +47,8 @@ struct ReportView: View {
     private static let monthRange = -120...0
     private static let yearRange = -10...0
 
-    init() {
+    init(isTabActive: Bool = true) {
+        self.isTabActive = isTabActive
         let now = Date()
         let calendar = Calendar.current
         self.initialMonth = calendar.dateInterval(of: .month, for: now)?.start ?? now
@@ -119,10 +123,19 @@ struct ReportView: View {
         }
         .background(Color(uiColor: .systemGroupedBackground))
         .onChange(of: mode) { oldMode, _ in
-            // 「月」から離れたら今月に戻しておく。次に「月」を開いたときは今月から表示する
-            // （年次レポートのグラフから特定の月を開く場合は、openMonth が離れた後に設定するので影響しない）
-            if oldMode == .monthly {
+            // 「月」「年」から離れたら今月・今年に戻しておく。次に開いたときは今月・今年から表示する
+            // （グラフから特定の月・年を開く場合は、openMonth / openYear が離れた後に設定するので影響しない）
+            switch oldMode {
+            case .monthly: monthOffset = 0
+            case .yearly: yearOffset = 0
+            case .all: break
+            }
+        }
+        .onChange(of: isTabActive) { _, isActive in
+            // 他のタブへ移ったら今月・今年に戻す（詳細画面への push では戻さない）
+            if isActive == false {
                 monthOffset = 0
+                yearOffset = 0
             }
         }
         .task(id: PrefetchID(mode: mode.rawValue, monthOffset: monthOffset, yearOffset: yearOffset, input: input)) {
@@ -130,19 +143,6 @@ struct ReportView: View {
         }
         .navigationTitle("レポート")
         .toolbar {
-            if currentOffset != 0 {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(mode == .monthly ? "今月" : "今年") {
-                        withAnimation {
-                            switch mode {
-                            case .monthly: monthOffset = 0
-                            case .yearly: yearOffset = 0
-                            case .all: break
-                            }
-                        }
-                    }
-                }
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink {
                     SoldItemFormView()
