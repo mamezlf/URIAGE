@@ -73,6 +73,17 @@ struct MonthlyReportContent: View {
     }
 
     var body: some View {
+        // ページを開いた直後はスケルトンを出し、集計は次のフレーム以降に行う
+        DeferredContent {
+            reportList
+        } placeholder: {
+            ReportSkeleton()
+        }
+        .contentMargins(.top, 0, for: .scrollContent)
+        .safeAreaPadding(.top, -10)
+    }
+
+    private var reportList: some View {
         List {
             if monthlyItems.isEmpty {
                 Section {
@@ -109,8 +120,6 @@ struct MonthlyReportContent: View {
                 }
             }
         }
-        .contentMargins(.top, 0, for: .scrollContent)
-        .safeAreaPadding(.top, -10)
     }
 
     private func reportRow(_ label: String, _ value: String, valueTint: Color = .primary) -> some View {

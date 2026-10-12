@@ -7,10 +7,18 @@ struct FormViewTemplate<Content: View>: View {
     var isSaveDisabled: Bool = false
     @ViewBuilder var content: Content
 
+    /// push のスライド中はスケルトンを出し、TextField / DatePicker の生成は遷移後に行う
+    @State private var isContentReady = false
+
     var body: some View {
         Form {
-            content
+            if isContentReady {
+                content
+            } else {
+                FormSkeletonSections()
+            }
         }
+        .deferredReveal($isContentReady, delay: SkeletonTiming.afterPush)
         .navigationTitle(title)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

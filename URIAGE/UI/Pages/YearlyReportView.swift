@@ -20,9 +20,18 @@ struct YearlyReportContent: View {
     }
 
     var body: some View {
-        // body の評価ごとに 1 回だけ集計する
-        let report = YearlyReport(year: year, soldItems: items, supplies: supplies)
+        // ページを開いた直後はスケルトンを出し、集計は次のフレーム以降に行う
+        DeferredContent {
+            // 描画ごとに 1 回だけ集計する
+            reportList(YearlyReport(year: year, soldItems: items, supplies: supplies))
+        } placeholder: {
+            ReportSkeleton(chartTitle: "月別推移")
+        }
+        .contentMargins(.top, 0, for: .scrollContent)
+        .safeAreaPadding(.top, -10)
+    }
 
+    private func reportList(_ report: YearlyReport) -> some View {
         List {
             if report.isEmpty {
                 Section {
@@ -64,8 +73,6 @@ struct YearlyReportContent: View {
                 }
             }
         }
-        .contentMargins(.top, 0, for: .scrollContent)
-        .safeAreaPadding(.top, -10)
     }
 
     // MARK: - Summary

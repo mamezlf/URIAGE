@@ -21,6 +21,7 @@ enum AppTheme {
         static let cardBackground = Color(.secondarySystemGroupedBackground)
         static let elevatedCardBackground = Color(.systemBackground)
         static let separator = Color(.separator).opacity(0.45)
+        static let skeleton = Color(.systemGray5)
     }
 
     enum Metrics {

@@ -3,6 +3,8 @@ import SwiftUI
 struct ListViewTemplate<Content: View, Filter: View, EmptyState: View>: View {
     let title: String
     let isEmpty: Bool
+    /// true の間はフィルターと行の代わりにスケルトンを表示する（タイトル・ツールバーはそのまま）
+    var isLoading: Bool = false
     @ViewBuilder var filterBar: Filter
     @ViewBuilder var emptyState: EmptyState
     @ViewBuilder var content: Content
@@ -10,18 +12,22 @@ struct ListViewTemplate<Content: View, Filter: View, EmptyState: View>: View {
 
     var body: some View {
         List {
-            Section {
-                filterBar
-            }
-            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-
-            if isEmpty {
-                Section {
-                    emptyState
-                }
-                .listRowBackground(Color.clear)
+            if isLoading {
+                ListTemplateSkeletonSections()
             } else {
-                content
+                Section {
+                    filterBar
+                }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+
+                if isEmpty {
+                    Section {
+                        emptyState
+                    }
+                    .listRowBackground(Color.clear)
+                } else {
+                    content
+                }
             }
         }
         .safeAreaPadding(.top, 16)
