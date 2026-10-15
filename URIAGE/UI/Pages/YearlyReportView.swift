@@ -29,6 +29,7 @@ struct YearlyReportContent: View {
             compute: ReportComputation.yearly(year)
         ) { report in
             reportList(report)
+                .reportScrollTracking()
         } placeholder: {
             ReportSkeleton(chartTitle: "月別推移")
         }

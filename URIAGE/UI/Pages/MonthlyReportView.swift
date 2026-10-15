@@ -28,6 +28,7 @@ struct MonthlyReportContent: View {
             compute: ReportComputation.monthly(month)
         ) { report in
             reportList(report)
+                .reportScrollTracking()
         } placeholder: {
             ReportSkeleton()
         }

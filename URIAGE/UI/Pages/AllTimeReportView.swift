@@ -28,6 +28,7 @@ struct AllTimeReportContent: View {
             compute: ReportComputation.allTime
         ) { report in
             reportList(report)
+                .reportScrollTracking()
         } placeholder: {
             ReportSkeleton(chartTitle: "年別推移")
         }
