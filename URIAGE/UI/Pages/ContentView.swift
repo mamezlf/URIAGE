@@ -42,6 +42,9 @@ struct ContentView: View {
     @State private var recordsPath = NavigationPath()
     @State private var reportsPath = NavigationPath()
     @State private var suppliesPath = NavigationPath()
+    // view-based NavigationLink で push した画面は path に含まれないため、
+    // path を空にしても戻らない。ID を更新して NavigationStack ごと作り直し、確実にルートへ戻す。
+    @State private var navigationResetID = UUID()
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -60,6 +63,7 @@ struct ContentView: View {
                         }
                     }
             }
+            .id(navigationResetID)
             .environment(\.moveToHomeAfterRecordSave, moveToHome)
             .tabItem {
                 Label("ホーム", systemImage: "house.fill")
@@ -69,6 +73,7 @@ struct ContentView: View {
             NavigationStack(path: $recordsPath) {
                 SoldItemListView()
             }
+            .id(navigationResetID)
             .environment(\.moveToHomeAfterRecordSave, moveToHome)
             .tabItem {
                 Label("記録", systemImage: "list.bullet.rectangle")
@@ -78,6 +83,7 @@ struct ContentView: View {
             NavigationStack(path: $reportsPath) {
                 ReportView(isTabActive: selectedTab == .reports)
             }
+            .id(navigationResetID)
             .environment(\.moveToHomeAfterRecordSave, moveToHome)
             .tabItem {
                 Label("レポート", systemImage: "chart.bar.xaxis")
@@ -103,6 +109,7 @@ struct ContentView: View {
                         }
                     }
             }
+            .id(navigationResetID)
             .environment(\.moveToHomeAfterRecordSave, moveToHome)
             .tabItem {
                 Label("資材", systemImage: "shippingbox")
@@ -117,6 +124,7 @@ struct ContentView: View {
         recordsPath = NavigationPath()
         reportsPath = NavigationPath()
         suppliesPath = NavigationPath()
+        navigationResetID = UUID()
     }
 }
 
