@@ -40,10 +40,16 @@ final class MercariItemImporterTests: XCTestCase {
         XCTAssertEqual(result.itemID, "m88862671213")
     }
 
+    func testNormalizeAcceptsBareItemID() throws {
+        let result = try MercariItemImporter.normalize("  m36144759504\n")
+
+        XCTAssertEqual(result.itemID, "m36144759504")
+        XCTAssertEqual(result.url.absoluteString, "https://jp.mercari.com/item/m36144759504")
+    }
+
     func testNormalizeRejectsTextWithoutItemID() {
         XCTAssertThrowsError(try MercariItemImporter.normalize("https://jp.mercari.com/mypage"))
         XCTAssertThrowsError(try MercariItemImporter.normalize("こんにちは"))
-        XCTAssertThrowsError(try MercariItemImporter.normalize("m36144759504"))
     }
 
     func testNormalizeRejectsUnsupportedURL() {

@@ -26,7 +26,7 @@ nonisolated enum MercariItemImportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Mercariのリンクを入力してください。"
+            return "メルカリの商品リンク、または商品ID（m から始まる番号）を入力してください。"
         case .unsupportedURL:
             return "商品のリンク（例: jp.mercari.com/item/m123…）を入力してください。"
         case .downloadFailed:
@@ -62,10 +62,16 @@ nonisolated enum MercariItemImporter {
     /// - `https://jp.mercari.com/transaction/m36144759504` など、パスに商品IDを含むメルカリのURL
     /// - `jp.mercari.com/item/m36144759504`（スキームなし）
     /// - `〇〇を出品中！ https://jp.mercari.com/item/m36144759504 #メルカリ`（URLを含む文章）
+    /// - `m36144759504`（商品IDのみ）
     static func normalize(_ input: String) throws -> MercariItemImportResult {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.isEmpty == false else {
             throw MercariItemImportError.invalidURL
+        }
+
+        // 商品IDだけが入力された場合
+        if isItemID(trimmed) {
+            return try canonicalResult(for: trimmed)
         }
 
         let links = detectedLinks(in: trimmed)
