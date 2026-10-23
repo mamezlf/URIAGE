@@ -33,7 +33,7 @@ struct YearlyReportContent: View {
         } placeholder: {
             ReportSkeleton(chartTitle: "月別推移")
         }
-        .contentMargins(.top, 0, for: .scrollContent)
+        .reportContentMargins()
         .safeAreaPadding(.top, -10)
     }
 

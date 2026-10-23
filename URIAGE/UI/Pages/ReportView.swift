@@ -39,6 +39,8 @@ struct ReportView: View {
     @State private var collapseProgress: CGFloat = 0
     /// 大きいタイトルの本来の高さ（文字サイズの設定で変わるので実測する）
     @State private var largeTitleHeight: CGFloat = 52
+    /// 上部（タイトル・「月 / 年 / すべて」・期間ヘッダー）を縮めていないときの高さ
+    @State private var expandedHeaderHeight: CGFloat = 170
 
     /// レポートタブが選択中か。タブを離れたら今月・今年に戻すために使う
     private let isTabActive: Bool
@@ -98,40 +100,34 @@ struct ReportView: View {
         // 集計用に値だけ写し取る（集計そのものは各ページがバックグラウンドで行う）
         let input = ReportInput(items: items, supplies: supplies)
 
-        VStack(spacing: 0) {
-            largeTitle
-
-            Picker("期間", selection: $mode) {
-                ForEach(ReportPeriodMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
+        // 上部は List の上に重ねて表示し、List 自体の大きさはスクロールしても変えない。
+        // （上部を縮めるたびに List の大きさが変わると、内容の短い月のページでスクロールが引っかかるため）
+        ZStack(alignment: .top) {
+            Group {
+                switch mode {
+                case .monthly:
+                    monthlyPager(input: input)
+                case .yearly:
+                    yearlyPager(input: input)
+                case .all:
+                    AllTimeReportContent(
+                        input: input,
+                        cache: cache,
+                        items: items,
+                        currencyCode: currencyCode,
+                        onOpenYear: openYear
+                    )
+                    .padding(.top, 12)
+                    .environment(\.reportScrollHandler, scrollHandler(isActive: true))
                 }
             }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, AppTheme.Metrics.screenPadding)
-            .padding(.top, 8)
+            .environment(\.reportTopInset, expandedHeaderHeight)
+            .environment(\.reportBottomInset, collapsibleHeight)
 
-            if mode != .all {
-                periodHeader
-            }
-
-            switch mode {
-            case .monthly:
-                monthlyPager(input: input)
-            case .yearly:
-                yearlyPager(input: input)
-            case .all:
-                AllTimeReportContent(
-                    input: input,
-                    cache: cache,
-                    items: items,
-                    currencyCode: currencyCode,
-                    onOpenYear: openYear
-                )
-                .padding(.top, 12)
-                .environment(\.reportScrollHandler, scrollHandler(isActive: true))
-            }
+            header
         }
-        .environment(\.reportCollapsedHeight, collapsibleHeight * collapseProgress)
+        // 上部の後ろを通った行が、ナビゲーションバーの下に透けて見えないようにする（下のタブバー側は切らない）
+        .clipShape(TopEdgeClip())
         .background(Color(uiColor: .systemGroupedBackground))
         .onChange(of: monthOffset) { resetCollapse() }
         .onChange(of: yearOffset) { resetCollapse() }
@@ -177,6 +173,34 @@ struct ReportView: View {
         }
     }
 
+    /// 上部全体。背景を塗って、後ろを通る List の行を隠す
+    private var header: some View {
+        VStack(spacing: 0) {
+            largeTitle
+
+            Picker("期間", selection: $mode) {
+                ForEach(ReportPeriodMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, AppTheme.Metrics.screenPadding)
+            .padding(.top, 8)
+
+            if mode != .all {
+                periodHeader
+            }
+        }
+        .background(Color(uiColor: .systemGroupedBackground))
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+            // 縮んだ分を足し戻して、縮めていないときの高さにする（スクロール中も List の余白が変わらないように）
+            let expanded = (height + collapsibleHeight * collapseProgress).rounded()
+            if abs(expanded - expandedHeaderHeight) > 0.5 {
+                expandedHeaderHeight = expanded
+            }
+        }
+    }
+
     /// 販売記録の大きいタイトルと同じ見た目。スクロールすると上に隠れていく
     private var largeTitle: some View {
         Text("レポート")
@@ -215,19 +239,10 @@ struct ReportView: View {
         largeTitleHeight + (mode == .all ? 0 : Self.periodHeaderCollapse)
     }
 
-    /// 表示中のページのスクロール量から、上部の縮み具合を決める
+    /// 表示中のページのスクロール量から、上部の縮み具合を決める。
+    /// List の大きさは変わらないので、スクロール量に合わせてそのまま縮めるだけでよい
     private func handleScroll(_ metrics: ReportScrollMetrics) {
-        // 縮んだ分は List の下に余白を足しているので、scrollableHeight は縮み具合によらず一定になる
-        let scrollable = metrics.scrollableHeight
-        let progress: CGFloat
-        if scrollable < 8 {
-            // ほとんどスクロールできないページは縮めない
-            progress = 0
-        } else {
-            // 内容が短い月でも、一番下までスクロールすれば最後まで縮むようにする
-            let distance = min(collapsibleHeight, scrollable)
-            progress = min(max(metrics.offset / distance, 0), 1)
-        }
+        let progress = min(max(metrics.offset / collapsibleHeight, 0), 1)
         if abs(progress - collapseProgress) > 0.001 {
             collapseProgress = progress
         }
@@ -397,6 +412,13 @@ struct ReportView: View {
                 }
             }
         )
+    }
+}
+
+/// 上端だけを切り取る形（左右と下ははみ出しても切らない）
+private struct TopEdgeClip: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path(CGRect(x: rect.minX - 1000, y: rect.minY, width: rect.width + 2000, height: rect.height + 1000))
     }
 }
 

@@ -32,7 +32,7 @@ struct MonthlyReportContent: View {
         } placeholder: {
             ReportSkeleton()
         }
-        .contentMargins(.top, 0, for: .scrollContent)
+        .reportContentMargins()
         .safeAreaPadding(.top, -10)
     }
 

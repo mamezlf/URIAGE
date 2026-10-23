@@ -32,7 +32,7 @@ struct AllTimeReportContent: View {
         } placeholder: {
             ReportSkeleton(chartTitle: "年別推移")
         }
-        .contentMargins(.top, 0, for: .scrollContent)
+        .reportContentMargins()
     }
 
     private func reportList(_ report: AllTimeReport) -> some View {
